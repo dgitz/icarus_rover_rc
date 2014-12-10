@@ -27,7 +27,7 @@ using namespace cv;
 //Declare a string with the name of the window that we will create using OpenCV where processed images will be displayed.
 static const char WINDOW[] = "Image w/ Overlay";
 char image_folder[512];
-static const char capture_date[] = "7Dec2014";
+static const char capture_date[] = "9Dec2014";
 static const char picked_date[] = "9Dec2014";
 ofstream target_file;
 char target_filename[512];
@@ -86,7 +86,11 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
      }
      else if  ( event == cv::EVENT_RBUTTONDOWN )
      {
-          //cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        targets[0][0] = -1;
+        targets[0][1] = -1;
+        targets[1][0] = -1;
+        targets[1][1] = -1;
+        target_counter = 2;
      }
      else if  ( event == cv::EVENT_MBUTTONDOWN )
      {
@@ -118,44 +122,43 @@ int main(int argc, char **argv)
   
   char tempstr2[512];
   get_dircontents (image_folder,image_names);
+  int image_count = image_names.size()-2;
   for (unsigned int i = 0;i < image_names.size();i++) 
   {
     stringstream sw;
     string tempstr;
     sw << image_names[i];
     tempstr = sw.str();
-    ROS_INFO("%s\n",tempstr.c_str());
-    if (tempstr.length() <= 4)
-    {
-      
-      break;
-      
-    }
-    
-    sprintf(tempstr2,"%s/%s",image_folder,image_names[i].c_str());
-    try
-    {
-      image = imread(tempstr2, CV_LOAD_IMAGE_COLOR);
-      
-      imshow(WINDOW, image ); 
-      cv::waitKey(0); 
-      cv::circle(image,Point(targets[0][0],targets[0][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
-      cv::circle(image,Point(targets[1][0],targets[1][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
-       target_file << image_names[i].c_str() << "," << targets[0][0] << "," << targets[0][1] << "," << targets[1][0] << "," << targets[1][1] << endl;
 
-      ROS_INFO("Target1 x:%d y:%d\n", targets[0][0],targets[0][1]); 
-      ROS_INFO("Target2 x:%d y:%d\n", targets[1][0],targets[1][1]); 
-      imshow(WINDOW, image ); 
-      cv::waitKey(0); 
-      target_counter = 0;
-      targets[0][0] = 0;
-      targets[0][1] = 0;
-      targets[1][0] = 0;
-      targets[1][1] = 0;
-    }
-    catch(runtime_error& ex)
+    if (tempstr.length() > 4)
     {
-      ROS_INFO("Exception: %s\n", ex.what());
+      ROS_INFO("Processing Image %d/%d with name:%s\n",i+1,image_count,tempstr.c_str());
+      sprintf(tempstr2,"%s/%s",image_folder,image_names[i].c_str());
+    
+      try
+      {
+        image = imread(tempstr2, CV_LOAD_IMAGE_COLOR);
+        
+        imshow(WINDOW, image ); 
+        cv::waitKey(0); 
+        cv::circle(image,Point(targets[0][0],targets[0][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
+        cv::circle(image,Point(targets[1][0],targets[1][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
+         target_file << image_names[i].c_str() << "," << targets[0][0] << "," << targets[0][1] << "," << targets[1][0] << "," << targets[1][1] << endl;
+
+        ROS_INFO("Target1 x:%d y:%d\n", targets[0][0],targets[0][1]); 
+        ROS_INFO("Target2 x:%d y:%d\n", targets[1][0],targets[1][1]); 
+        imshow(WINDOW, image ); 
+        cv::waitKey(0); 
+        target_counter = 0;
+        targets[0][0] = -1;
+        targets[0][1] = -1;
+        targets[1][0] = -1;
+        targets[1][1] = -1;
+      }
+      catch(runtime_error& ex)
+      {
+        ROS_INFO("Exception: %s\n", ex.what());
+      }
     }
     
   }

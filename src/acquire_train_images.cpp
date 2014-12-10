@@ -24,7 +24,7 @@ using namespace cv;
 //Declare a string with the name of the window that we will create using OpenCV where processed images will be displayed.
 static const char WINDOW[] = "Image w/ Overlay";
 char image_filename[512];
-static const char capture_date[] = "7Dec2014";
+static const char capture_date[] = "9Dec2014";
 
 image_transport::Publisher pub;
 cv_bridge::CvImagePtr cv_ptr;

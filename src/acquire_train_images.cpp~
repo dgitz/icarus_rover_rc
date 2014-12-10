@@ -68,7 +68,7 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
      {
           //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
           image_counter++;
-          sprintf(image_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-7Dec2014/Image%d.png",image_counter);
+          sprintf(image_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-%s/Image%d.png",capture_date,image_counter);
           ROS_INFO("Saving Image with file: %s",image_filename);
           try
           {
