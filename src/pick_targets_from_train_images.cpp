@@ -13,9 +13,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <math.h>
 #include <dirent.h>
-
+#include <iomanip>
 
 //Store all constants for image encodings in the enc namespace to be used later.
 namespace enc = sensor_msgs::image_encodings;
@@ -26,10 +28,16 @@ using namespace cv;
 static const char WINDOW[] = "Image w/ Overlay";
 char image_folder[512];
 static const char capture_date[] = "7Dec2014";
+static const char picked_date[] = "9Dec2014";
+ofstream target_file;
+char target_filename[512];
 
+//target_file.open(
+int targets[2][2];
+int target_counter = 0;
 image_transport::Publisher pub;
 cv_bridge::CvImagePtr cv_ptr;
-
+  cv::Mat image;
 
 int image_counter = 0;
 /*function... might want it in some class?*/
@@ -60,6 +68,15 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
      {
           try
           {
+            if (target_counter < 2)
+            {
+              targets[target_counter][0] = x;
+              targets[target_counter][1] = y;
+              
+              
+              target_counter++;
+            }
+            
           }
           catch(runtime_error& ex)
           {
@@ -85,16 +102,18 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
 int main(int argc, char **argv)
 {
 
-  int target_count = 0;
-  cv::Mat image;
+
+
   ros::init(argc, argv, "image_acqusition");
   ros::NodeHandle nh;
-  nh.getParam("target_count", target_count);
   //nh.getParam("target_count",target_count);
   ros::Rate loop_rate(10);
   cv::namedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
-  //cv::setMouseCallback(WINDOW,mouseCallBack,NULL);
+  cv::setMouseCallback(WINDOW,mouseCallBack,NULL);
   sprintf(image_folder,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-%s/",capture_date);
+  sprintf(target_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/target_files/%s.csv",picked_date);
+  target_file.open(target_filename);
+ 
   vector<string> image_names = vector<string>();
   
   char tempstr2[512];
@@ -117,8 +136,22 @@ int main(int argc, char **argv)
     try
     {
       image = imread(tempstr2, CV_LOAD_IMAGE_COLOR);
+      
       imshow(WINDOW, image ); 
-      cv::waitKey(3);  
+      cv::waitKey(0); 
+      cv::circle(image,Point(targets[0][0],targets[0][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
+      cv::circle(image,Point(targets[1][0],targets[1][1]),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
+       target_file << image_names[i].c_str() << "," << targets[0][0] << "," << targets[0][1] << "," << targets[1][0] << "," << targets[1][1] << endl;
+
+      ROS_INFO("Target1 x:%d y:%d\n", targets[0][0],targets[0][1]); 
+      ROS_INFO("Target2 x:%d y:%d\n", targets[1][0],targets[1][1]); 
+      imshow(WINDOW, image ); 
+      cv::waitKey(0); 
+      target_counter = 0;
+      targets[0][0] = 0;
+      targets[0][1] = 0;
+      targets[1][0] = 0;
+      targets[1][1] = 0;
     }
     catch(runtime_error& ex)
     {
