@@ -14,7 +14,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <math.h>
-
+#include <string>
+#include <sstream>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 //Store all constants for image encodings in the enc namespace to be used later.
 namespace enc = sensor_msgs::image_encodings;
@@ -23,9 +26,11 @@ using namespace cv;
  
 //Declare a string with the name of the window that we will create using OpenCV where processed images will be displayed.
 static const char WINDOW[] = "Image w/ Overlay";
-char image_filename[512];
-static const char capture_date[] = "7Dec2014";
-
+//char image_filename[512];
+//static const char capture_date[] = "9Dec2014";
+string capture_date;
+string image_filename;
+string root_directory;
 image_transport::Publisher pub;
 cv_bridge::CvImagePtr cv_ptr;
 
@@ -68,8 +73,11 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
      {
           //cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
           image_counter++;
-          sprintf(image_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-%s/Image%d.png",capture_date,image_counter);
-          ROS_INFO("Saving Image with file: %s",image_filename);
+          ostringstream tempconvert;
+          tempconvert << image_counter;
+          image_filename = root_directory + "media/imagesamples-" + capture_date + "/Image" + tempconvert.str();  //Wrong
+          //sprintf(image_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-%s/Image%d.png",capture_date,image_counter);
+          //ROS_INFO("Saving Image with file: %s",image_filename);
           try
           {
             cv::imwrite(image_filename, cv_ptr->image);
@@ -101,7 +109,12 @@ int main(int argc, char **argv)
   int target_count = 0;
   ros::init(argc, argv, "image_acqusition");
   ros::NodeHandle nh;
-  nh.getParam("target_count", target_count);
+  nh.getParam("capture_date", capture_date);
+  nh.getParam("root_directory",root_directory);
+  string tempstr = root_directory + "media/imagesamples-" + capture_date;
+
+  mkdir(tempstr.c_str(),S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+  ROS_INFO("%s",capture_date.c_str());
   image_transport::ImageTransport it(nh);
   image_transport::Subscriber sub = it.subscribe("usb_cam/image_raw", 1, imageCallback);
   //nh.getParam("target_count",target_count);

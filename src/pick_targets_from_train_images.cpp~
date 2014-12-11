@@ -26,11 +26,12 @@ using namespace cv;
  
 //Declare a string with the name of the window that we will create using OpenCV where processed images will be displayed.
 static const char WINDOW[] = "Image w/ Overlay";
-char image_folder[512];
-static const char capture_date[] = "9Dec2014";
-static const char picked_date[] = "9Dec2014b";
+string image_folder;
+string capture_date;
+string picked_date;
+string target_filename;
 ofstream target_file;
-char target_filename[512];
+string root_directory;
 
 //target_file.open(
 int targets[2][2];
@@ -94,8 +95,8 @@ void mouseCallBack(int event, int x, int y, int flags, void* userdata)
      }
      else if  ( event == cv::EVENT_MBUTTONDOWN )
      {
+      }
           //cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
-     }
      else if ( event == cv::EVENT_MOUSEMOVE )
      {
           //cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
@@ -111,16 +112,19 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "image_acqusition");
   ros::NodeHandle nh;
   //nh.getParam("target_count",target_count);
+  nh.getParam("root_directory",root_directory);
+  nh.getParam("capture_date",capture_date);
+  nh.getParam("picked_date",picked_date);
   ros::Rate loop_rate(10);
   cv::namedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
   cv::setMouseCallback(WINDOW,mouseCallBack,NULL);
-  sprintf(image_folder,"/home/gitzd/catkin_ws/src/icarus_rover_rc/media/imagesamples-%s/",capture_date);
-  sprintf(target_filename,"/home/gitzd/catkin_ws/src/icarus_rover_rc/target_files/%s.csv",picked_date);
-  target_file.open(target_filename);
- 
+  image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
+  target_filename = root_directory + "target_files/" + picked_date + ".csv";
+  target_file.open(target_filename.c_str());
+ target_file << "Capture Name:" << capture_date << endl;
   vector<string> image_names = vector<string>();
   
-  char tempstr2[512];
+  string tempstr2;
   get_dircontents (image_folder,image_names);
   int image_count = image_names.size()-2;
   for (unsigned int i = 0;i < image_names.size();i++) 
@@ -132,12 +136,13 @@ int main(int argc, char **argv)
 
     if (tempstr.length() > 4)
     {
-      ROS_INFO("Processing Image %d/%d with name:%s\n",i+1,image_count,tempstr.c_str());
-      sprintf(tempstr2,"%s/%s",image_folder,image_names[i].c_str());
+      ROS_INFO("Processing Image %d/%d with name:%s\n",i,image_count,tempstr.c_str());
+      tempstr2 = image_folder + "/" + image_names[i];
+      //sprintf(tempstr2,"%s/%s",image_folder,image_names[i].c_str());
     
       try
       {
-        image = imread(tempstr2, CV_LOAD_IMAGE_COLOR);
+        image = imread(tempstr2.c_str(), CV_LOAD_IMAGE_COLOR);
         
         imshow(WINDOW, image ); 
         cv::waitKey(0); 

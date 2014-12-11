@@ -1,6 +1,9 @@
 <!--xml-->
 <launch>
-   <param name="target_count" value="2" />
+  <param name="capture_date" value="10Dec2014" />
+  <param name="picked_date" value="11Dec2014" />
+  
+  <param name="root_directory" value="/home/gitzd/catkin_ws/src/icarus_rover_rc/" />
   <node name="pick_targets_from_train_images" pkg="icarus_rover_rc" type="pick_targets_from_train_images" output="screen">
    
   </node>
