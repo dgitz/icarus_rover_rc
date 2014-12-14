@@ -2,7 +2,9 @@
 <launch>
   <param name="capture_date" value="9Dec2014" />
   <param name="picked_date" value="9Dec2014" />
-  
+  <param name="show_images" value="1" />
+  <param name="use_surf" value="0" />
+  <param name="use_orb" value="1" />
   <param name="root_directory" value="/home/gitzd/catkin_ws/src/icarus_rover_rc/" />
   <param name="template_image_name" value="Template1" />
   <node name="tune_targeting" pkg="icarus_rover_rc" type="tune_targeting" output="screen">
