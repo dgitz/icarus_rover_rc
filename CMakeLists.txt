@@ -10,7 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   geometry_msgs
-  usb_cam
+  #usb_cam
   message_generation
   tf
 )
@@ -109,7 +109,7 @@ include_directories(
 # )
 
 ## Declare a cpp executable
-add_executable(acquire_train_images src/acquire_train_images.cpp)
+#add_executable(acquire_train_images src/acquire_train_images.cpp)
 add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 add_executable(tune_targeting src/tune_targeting.cpp)
 
@@ -121,11 +121,11 @@ add_executable(tune_targeting src/tune_targeting.cpp)
 # target_link_libraries(icarus_rover_rc_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(acquire_train_images 
-	${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES}
-	${PROJECT_SOURCE_DIR}
-)
+#target_link_libraries(acquire_train_images 
+#	${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES}
+#	${PROJECT_SOURCE_DIR}
+#)
 
 target_link_libraries(pick_targets_from_train_images 
 	${catkin_LIBRARIES}

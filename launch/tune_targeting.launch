@@ -14,7 +14,7 @@
   
   <param name="dilate_max" value="10" />
 
-  <param name="root_directory" value="/home/gitzd/catkin_ws/src/icarus_rover_rc/" />
+  <param name="root_directory" value="/home/pi/catkin_ws/src/icarus_rover_rc/" />
   <param name="template_image_name" value="Template1" />
   <node name="tune_targeting" pkg="icarus_rover_rc" type="tune_targeting" output="screen">
    
