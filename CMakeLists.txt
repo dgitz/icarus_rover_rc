@@ -112,6 +112,7 @@ include_directories(
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
 add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 add_executable(tune_targeting src/tune_targeting.cpp)
+add_executable(run_targeting src/run_targeting.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -138,6 +139,12 @@ target_link_libraries(tune_targeting
   ${OpenCV_LIBRARIES}
   ${PROJECT_SOURCE_DIR}
 )
+
+target_link_libraries(run_targeting
+	${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES}
+	${PROJECT_SOURCE_DIR}
+)		
 #############
 ## Install ##
 #############
