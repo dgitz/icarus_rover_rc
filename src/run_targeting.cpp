@@ -52,6 +52,7 @@ int erode_value;
 int dilate_value;
 int threshold_value;
 int run_live;
+int image_ready = 0;
 
 //target_file.open(
 int targets[2][2];
@@ -106,13 +107,39 @@ cv::Mat process_image(cv::Mat image,int threshold,int erode,int dilate)
   }
   return image;
 }
+void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
+{
+    //Convert from the ROS image message to a CvImage suitable for working with OpenCV for processing
+    
+    try
+    {
+        //Always copy, returning a mutable CvImage
+        //OpenCV expects color images to use BGR channel order.
+        cv_ptr = cv_bridge::toCvCopy(original_image, enc::BGR8);
+        orig_sensor_image = cv_ptr->image.clone();
+        image_ready = 1;
+        ROS_INFO("Got an image.");
+    }
+    catch (cv_bridge::Exception& e)
+    {
+        //if there is an error during conversion, display it
+        ROS_ERROR("tutorialROSOpenCV::main.cpp::cv_bridge exception: %s", e.what());
+        return;
+    }
+	
+	
+
+        //pub.publish(cv_ptr->toImageMsg());
+}
+  
+
 int main(int argc, char **argv)
 {
 
 
   
 
-  ros::init(argc, argv, "target_tuning");
+  ros::init(argc, argv, "targeting");
   ros::NodeHandle nh;
   //nh.getParam("target_count",target_count);
   nh.getParam("root_directory",root_directory);
@@ -142,7 +169,8 @@ int main(int argc, char **argv)
 	int image_count = image_names.size()-2;
 	vector<KeyPoint> template_keypoints,sensor_keypoints;
 	cv::Mat template_descriptor,sensor_descriptor;
-  
+  image_transport::ImageTransport it(nh);
+  image_transport::Subscriber sub = it.subscribe("usb_cam/image_raw", 1, imageCallback);
 	//SURF Initialization Stuff.  
 	int minHessian = 1000;
 	cv::FeatureDetector * surf_detector = new cv::SURF(minHessian);
@@ -175,40 +203,58 @@ int main(int argc, char **argv)
 	double myscore = 0.0;
 	int Height = 1;
 	int Width = 1;
- 
-	while(getline(target_file,tempstr) && ros::ok() && true)
+  int target1_x;
+  int target1_y;
+  int target2_x;
+  int target2_y;
+  string token,remain;
+	while( ros::ok() && true)
 	{
+    
 	  lasttime = std::clock();
 	  ros::spinOnce();
 	  loop_rate.sleep();
-	  image_counter++;
-	  start = std::clock();
-	  string token,remain;
-	  token = tempstr.substr(0,tempstr.find(","));
-	  remain = tempstr.substr(token.length()+1);
 	  
-	  image_filename = token;
-	  
-	  token = remain.substr(0,remain.find(","));
-	  remain = remain.substr(token.length()+1);
-	  int target1_x = std::atoi(token.c_str());
-	  
-	  token = remain.substr(0,remain.find(","));
-	  remain = remain.substr(token.length()+1);
-	  int target1_y = std::atoi(token.c_str());    
-	  
-	  token = remain.substr(0,remain.find(","));
-	  remain = remain.substr(token.length()+1);
-	  int target2_x = std::atoi(token.c_str()); 
+	  if (run_live == true)
+    {
+      
+    }
+    else
+    {
+      image_counter++;
+      getline(target_file,tempstr);
+  	  
+	    token = tempstr.substr(0,tempstr.find(","));
+	    remain = tempstr.substr(token.length()+1);
+	    
+	    image_filename = token;
+	    
+	    token = remain.substr(0,remain.find(","));
+	    remain = remain.substr(token.length()+1);
+	    target1_x = std::atoi(token.c_str());
+	    
+	    token = remain.substr(0,remain.find(","));
+	    remain = remain.substr(token.length()+1);
+	    target1_y = std::atoi(token.c_str());    
+	    
+	    token = remain.substr(0,remain.find(","));
+	    remain = remain.substr(token.length()+1);
+	    target2_x = std::atoi(token.c_str()); 
 
-	  token = remain.substr(0,remain.find(","));
-	  int target2_y = std::atoi(token.c_str());     
-	  double target_x = 0.0; 
-	  double target_y = 0.0;
-	  
-	  //ROS_INFO("T1_x:%d T1_y:%d T2_x:%d T2_y:%d",target1_x,target1_y,target2_x,target2_y);
-	  image_filepath = image_folder + image_filename;
-	  orig_sensor_image = imread(image_filepath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+	    token = remain.substr(0,remain.find(","));
+	    target2_y = std::atoi(token.c_str());     
+	    image_ready = 1;
+	    //ROS_INFO("T1_x:%d T1_y:%d T2_x:%d T2_y:%d",target1_x,target1_y,target2_x,target2_y);
+	    image_filepath = image_folder + image_filename;
+	    orig_sensor_image = imread(image_filepath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+    }
+    if (image_ready == 0)
+    {
+      ROS_INFO("No Image Yet.");
+      break;
+    }
+    double target_x = 0.0;
+    double target_y = 0.0;
     sensor_image = orig_sensor_image.clone();
 	  sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
 	  cv::Size s = sensor_image.size();
@@ -316,9 +362,9 @@ int main(int argc, char **argv)
       cv::circle(orig_sensor_image,Point(target_x,target_y),25,cv::Scalar(0,0,255),CV_FILLED,8,0);
       
       imshow("Good Matches & Object detection",orig_sensor_image);
-	    cv::waitKey(100);
+	    cv::waitKey(1);
 	  }
-	    dtime = (std::clock() - lasttime) / (double)(CLOCKS_PER_SEC /1);
+    dtime = (std::clock() - lasttime) / (double)(CLOCKS_PER_SEC /1);
        
 	    
 	  }
@@ -328,14 +374,23 @@ int main(int argc, char **argv)
 	    target_x = -1.0;
 	    target_y = -1.0;
 	  }
-	  myscore = evaluate_target(target_x,target_y,target1_x,target1_y,target2_x,target2_y,Height,Width);
-	  total_score += myscore;
+    if (run_live == 0)
+    {
+	    myscore = evaluate_target(target_x,target_y,target1_x,target1_y,target2_x,target2_y,Height,Width);
+	    total_score += myscore;
+    }
 	  //ROS_INFO("Processed Image:%s with Score:%f",image_filename.c_str(),myscore);
-   	
+   	if (image_ready == 1)
+    {
+      image_ready = 0;
+    }
     ROS_INFO("FPS: %f x: %f y: %f",1.0/dtime,target_x,target_y);
   }
-	target_file.close();
-	total_score = 100*(1.0-total_score/(image_counter*Height*Width));
+  if (run_live==0)
+  {
+	  target_file.close();
+	  total_score = 100*(1.0-total_score/(image_counter*Height*Width));
+  }
 	if (SHOW_IMAGES)
 	{
 	  cv::destroyWindow(WINDOW);
