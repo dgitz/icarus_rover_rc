@@ -316,7 +316,7 @@ int main(int argc, char **argv)
       cv::circle(orig_sensor_image,Point(target_x,target_y),25,cv::Scalar(0,0,255),CV_FILLED,8,0);
       
       imshow("Good Matches & Object detection",orig_sensor_image);
-	    cv::waitKey(1);
+	    cv::waitKey(100);
 	  }
 	    dtime = (std::clock() - lasttime) / (double)(CLOCKS_PER_SEC /1);
        
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
 	  }
 	  catch(const std::exception& ex)
 	  {
-	    //ROS_INFO("ERROR:%s",ex.what());
+	    ROS_INFO("ERROR:%s",ex.what());
 	    target_x = -1.0;
 	    target_y = -1.0;
 	  }
@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 	  total_score += myscore;
 	  //ROS_INFO("Processed Image:%s with Score:%f",image_filename.c_str(),myscore);
    	
-    ROS_INFO("FPS: %f",1.0/dtime);
+    ROS_INFO("FPS: %f x: %f y: %f",1.0/dtime,target_x,target_y);
   }
 	target_file.close();
 	total_score = 100*(1.0-total_score/(image_counter*Height*Width));
