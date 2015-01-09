@@ -91,7 +91,8 @@ double evaluate_target(double target_x, double target_y,double target1_x, double
 cv::Mat process_image(cv::Mat image,int threshold,int erode,int dilate)
 {
   cv::Mat processed_image;
-  cv::equalizeHist( image, image );
+  //cv::equalizeHist( image, image );
+  /*
   cv::threshold(image, image, threshold, 255, CV_THRESH_BINARY);
   cv::Mat element_erode = getStructuringElement(cv::MORPH_CROSS,
               cv::Size(2 * erode + 1, 2 * erode + 1),
@@ -105,6 +106,7 @@ cv::Mat process_image(cv::Mat image,int threshold,int erode,int dilate)
   if(filter_method.compare("DIGITAL") == 0)
   {
   }
+  */
   return image;
 }
 void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
@@ -118,6 +120,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
         cv_ptr = cv_bridge::toCvCopy(original_image, enc::BGR8);
         orig_sensor_image = cv_ptr->image.clone();
         cvtColor(orig_sensor_image, orig_sensor_image, CV_BGR2GRAY);
+        cv::resize(orig_sensor_image, orig_sensor_image, Size(640, 480), 0, 0, INTER_CUBIC);
         image_ready = 1;
         
     }
@@ -162,7 +165,7 @@ int main(int argc, char **argv)
 	template_image_path = root_directory + "media/Templates/" + template_image_name + ".png";
 	raw_image = imread(template_image_path.c_str(),CV_LOAD_IMAGE_GRAYSCALE);
 	cv::resize(raw_image,template_image, Size(), 3, 3, INTER_LINEAR );
-	//template_image = process_image(template_image,threshold_value,erode_value,dilate_value);
+	template_image = process_image(template_image,threshold_value,erode_value,dilate_value);
 	ros::Rate loop_rate(1000);
 	image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
 	target_filename = root_directory + "target_files/" + picked_date + ".csv";
@@ -260,7 +263,7 @@ int main(int argc, char **argv)
     double target_x = 0.0;
     double target_y = 0.0;
     sensor_image = orig_sensor_image.clone();
-	  //sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
+	  sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
 	  cv::Size s = sensor_image.size();
 	  Height = s.height;
 	  Width = s.width;
