@@ -279,18 +279,20 @@ int main(int argc, char **argv)
 	    {
 	      orb_detector->detect(sensor_image,sensor_keypoints);
 	      orb_extractor->compute(sensor_image,sensor_keypoints,sensor_descriptor);
+        cv::BFMatcher orb_matcher(cv::NORM_HAMMING2);
+        orb_matcher.match(template_descriptor,sensor_descriptor,matches);  
 	    }
 	  
 	  
 	    double max_dist = 0;
 	    double min_dist = 100;
+      double dist = 0.0;
 	    for( int i = 0; i < template_descriptor.rows; i++ )
 	    { 
-	      double dist = matches[i].distance;
+	      dist = matches[i].distance;
 	      if( dist < min_dist ) min_dist = dist;
 	      if( dist > max_dist ) max_dist = dist;
 	    }
-	    
 	    //ROS_INFO("-- Max dist : %f \n", max_dist );
 	    //ROS_INFO("-- Min dist : %f \n", min_dist );
 
@@ -306,12 +308,12 @@ int main(int argc, char **argv)
 
 	    //-- Draw only "good" matches
 	    Mat img_matches;
-	    if (detect_method.compare("SURF") == 0)
-	    {
+	    //if (detect_method.compare("SURF") == 0)
+	    //{
 	      drawMatches( template_image, template_keypoints, sensor_image, sensor_keypoints,
 		         good_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
 		         vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-	    }
+	    //}
 
 	    std::vector<Point2f> obj;
 	    std::vector<Point2f> scene;
@@ -357,11 +359,9 @@ int main(int argc, char **argv)
 	    target_x = -1.0;
 	    target_y = -1.0;
 	  }
-	  
-	  ROS_INFO("Here0");
+
 	  if (SHOW_IMAGES)
 	  {
-	    ROS_INFO("Here1");
 	    //cv::circle(img_matches,Point(target_x,target_y),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
 	    //imshow( "Good Matches & Object detection", img_matches );
       cv::circle(orig_sensor_image,Point(target_x,target_y),25,cv::Scalar(0,0,255),CV_FILLED,8,0);
