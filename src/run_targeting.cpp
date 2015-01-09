@@ -167,7 +167,6 @@ int main(int argc, char **argv)
 	image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
 	target_filename = root_directory + "target_files/" + picked_date + ".csv";
 	target_file.open(target_filename.c_str(), fstream::in);
-  ROS_INFO("%s",target_filename.c_str());
 	vector<string> image_names = vector<string>();
 	string tempstr;
 	int image_count = image_names.size()-2;
@@ -225,7 +224,7 @@ int main(int argc, char **argv)
     }
     else
     {
-      ROS_INFO("Here1");
+      
       image_counter++;
       getline(target_file,tempstr);
   	  
@@ -293,9 +292,6 @@ int main(int argc, char **argv)
 	      if( dist < min_dist ) min_dist = dist;
 	      if( dist > max_dist ) max_dist = dist;
 	    }
-	    //ROS_INFO("-- Max dist : %f \n", max_dist );
-	    //ROS_INFO("-- Min dist : %f \n", min_dist );
-
 	    std::vector< DMatch > good_matches;
 	    //surf_matcher.knnMatch(template_descriptor, des_image, matches, 2);
 	    for( int i = 0; i < template_descriptor.rows; i++ )
@@ -324,7 +320,7 @@ int main(int argc, char **argv)
 	      obj.push_back( template_keypoints[ good_matches[i].queryIdx ].pt );
 	      scene.push_back( sensor_keypoints[ good_matches[i].trainIdx ].pt );
 	    }
-
+      
 	    Mat H = findHomography( obj, scene, CV_RANSAC );
 
 	    //-- Get the corners from the image_1 ( the object to be "detected" )
@@ -344,14 +340,14 @@ int main(int argc, char **argv)
 	    line( img_matches, scene_corners[3] + Point2f( template_image.cols, 0), scene_corners[0] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );*/
 
 	  //-- Show detected matches
-
-
+    double min_x,max_x,min_y,max_y = 0.0;
+    string tempstr = "";
 	  for(int i = 0;i<4;i++)
 	  {
 	      target_x += scene_corners[i].x;
 	      target_y += scene_corners[i].y;
-	  }
-
+        
+    }
 	  target_x = target_x/4;
 	  target_y = target_y/4;
 	  if ((good_matches.size() < 4) or (target_x < 0) or (target_y < 0))
@@ -364,8 +360,13 @@ int main(int argc, char **argv)
 	  {
 	    //cv::circle(img_matches,Point(target_x,target_y),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
 	    //imshow( "Good Matches & Object detection", img_matches );
-      cv::circle(orig_sensor_image,Point(target_x,target_y),25,cv::Scalar(0,0,255),CV_FILLED,8,0);
-      cv::resize(orig_sensor_image,orig_sensor_image, Size(), .3, .3, INTER_LINEAR );
+      cv::circle(orig_sensor_image,Point(target_x,target_y),15,cv::Scalar(0,0,255),CV_FILLED,8,0);
+      cv::resize(orig_sensor_image,orig_sensor_image, Size(), .5, .5, INTER_LINEAR );
+      std::ostringstream ss;
+      ss << "FPS:" << 1/dtime;
+      tempstr = ss.str();
+      cv::putText(orig_sensor_image, tempstr.c_str(), cvPoint(30,30), 
+    FONT_HERSHEY_COMPLEX_SMALL, 1, cvScalar(0,0,255), 1, CV_AA);
       imshow(WINDOW,orig_sensor_image);
 	    cv::waitKey(1);
 	  }

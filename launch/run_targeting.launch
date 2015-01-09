@@ -2,7 +2,7 @@
 <launch>
   <param name="capture_date" value="9Dec2014" />
     <param name="picked_date" value="9Dec2014" />
-  <param name="show_images" value="0" />
+  <param name="show_images" value="1" />
   <param name="detect_method" value="ORB" />
   <param name="run_live" value="1" />
   <param name="filter" value="DIGITAL_FILTER" />
