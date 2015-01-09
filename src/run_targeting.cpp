@@ -117,8 +117,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
         //OpenCV expects color images to use BGR channel order.
         cv_ptr = cv_bridge::toCvCopy(original_image, enc::BGR8);
         orig_sensor_image = cv_ptr->image.clone();
+        cvtColor(orig_sensor_image, orig_sensor_image, CV_BGR2GRAY);
         image_ready = 1;
-        ROS_INFO("Got an image.");
+        
     }
     catch (cv_bridge::Exception& e)
     {
@@ -150,15 +151,18 @@ int main(int argc, char **argv)
   nh.getParam("detect_method",detect_method);
   nh.getParam("filter_method",filter_method);
   nh.getParam("threshold",threshold_value);
-
+  nh.getParam("run_live",run_live);
   nh.getParam("erode",erode_value);
   nh.getParam("dilate",dilate_value);
-  
+  if (SHOW_IMAGES)
+  {
+    cv::namedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
+  }
   double fps = 0.0;
 	template_image_path = root_directory + "media/Templates/" + template_image_name + ".png";
 	raw_image = imread(template_image_path.c_str(),CV_LOAD_IMAGE_GRAYSCALE);
 	cv::resize(raw_image,template_image, Size(), 3, 3, INTER_LINEAR );
-	template_image = process_image(template_image,threshold_value,erode_value,dilate_value);
+	//template_image = process_image(template_image,threshold_value,erode_value,dilate_value);
 	ros::Rate loop_rate(1000);
 	image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
 	target_filename = root_directory + "target_files/" + picked_date + ".csv";
@@ -215,12 +219,13 @@ int main(int argc, char **argv)
 	  ros::spinOnce();
 	  loop_rate.sleep();
 	  
-	  if (run_live == true)
+	  if (run_live == 1)
     {
       
     }
     else
     {
+      ROS_INFO("Here1");
       image_counter++;
       getline(target_file,tempstr);
   	  
@@ -250,13 +255,13 @@ int main(int argc, char **argv)
     }
     if (image_ready == 0)
     {
-      ROS_INFO("No Image Yet.");
-      break;
+      
+      continue;
     }
     double target_x = 0.0;
     double target_y = 0.0;
     sensor_image = orig_sensor_image.clone();
-	  sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
+	  //sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
 	  cv::Size s = sensor_image.size();
 	  Height = s.height;
 	  Width = s.width;
@@ -353,15 +358,15 @@ int main(int argc, char **argv)
 	    target_y = -1.0;
 	  }
 	  
-	  
+	  ROS_INFO("Here0");
 	  if (SHOW_IMAGES)
 	  {
-	    
+	    ROS_INFO("Here1");
 	    //cv::circle(img_matches,Point(target_x,target_y),5,cv::Scalar(0,0,255),CV_FILLED,8,0);
 	    //imshow( "Good Matches & Object detection", img_matches );
       cv::circle(orig_sensor_image,Point(target_x,target_y),25,cv::Scalar(0,0,255),CV_FILLED,8,0);
-      
-      imshow("Good Matches & Object detection",orig_sensor_image);
+      cv::resize(orig_sensor_image,orig_sensor_image, Size(), .3, .3, INTER_LINEAR );
+      imshow(WINDOW,orig_sensor_image);
 	    cv::waitKey(1);
 	  }
     dtime = (std::clock() - lasttime) / (double)(CLOCKS_PER_SEC /1);
