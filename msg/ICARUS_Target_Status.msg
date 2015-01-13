@@ -1,4 +1,3 @@
 Header header
-int Target_Type
-Point Target_Point
-Quaternion Target_Orientation
+int64 Target_Type
+geometry_msgs/Point Target_Point

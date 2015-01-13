@@ -37,7 +37,7 @@ find_package(OpenCV REQUIRED)
 ##   * If MSG_DEP_SET isn't empty the following dependencies might have been
 ##     pulled in transitively but can be declared for certainty nonetheless:
 ##     * add a build_depend tag for "message_generation"
-##     * add a run_depend tag for "message_runtime"
+##     * add a run_depend tag for=message_runtime"
 ## * In this file (CMakeLists.txt):
 ##   * add "message_generation" and every package in MSG_DEP_SET to
 ##     find_package(catkin REQUIRED COMPONENTS ...)
@@ -49,11 +49,10 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   ICARUS_Target_Status.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,12 +68,13 @@ find_package(OpenCV REQUIRED)
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
-
+#n# Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+   std_msgs
+   geometry_msgs
+ )
+#generate_messages()
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -85,9 +85,9 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES icarus_rover_rc
-#  CATKIN_DEPENDS roscpp rospy std_msgs vision_opencv
+   INCLUDE_DIRS include
+#  LIBRARIES beginner_tutorials
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -98,7 +98,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
+include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -112,7 +112,7 @@ include_directories(
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
 add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 add_executable(tune_targeting src/tune_targeting.cpp)
-add_executable(run_targeting src/run_targeting.cpp)
+add_executable(Targeting_Node src/Targeting_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -131,19 +131,19 @@ add_executable(run_targeting src/run_targeting.cpp)
 target_link_libraries(pick_targets_from_train_images 
 	${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES}
-	${PROJECT_SOURCE_DIR}
+	#${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(tune_targeting
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
-  ${PROJECT_SOURCE_DIR}
+  #${PROJECT_SOURCE_DIR}
 )
 
-target_link_libraries(run_targeting
+target_link_libraries(Targeting_Node
 	${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES}
-	${PROJECT_SOURCE_DIR}
+	#${PROJECT_SOURCE_DIR}
 )		
 #############
 ## Install ##

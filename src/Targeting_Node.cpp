@@ -24,8 +24,8 @@
 #include <dirent.h>
 #include <iomanip>
 #include <ctime>
-#include "Definitions.h"
-
+#include "icarus_rover_rc/Definitions.h"
+#include "icarus_rover_rc/ICARUS_Target_Status.h"
 
 //Store all constants for image encodings in the enc namespace to be used later.
 namespace enc = sensor_msgs::image_encodings;
@@ -159,8 +159,8 @@ int main(int argc, char **argv)
   nh.getParam("run_live",run_live);
   nh.getParam("erode",erode_value);
   nh.getParam("dilate",dilate_value);
-  ros::Publisher Pub_ICARUS_Target_Status = nh.advertise<std_msgs::String>("ICARUS_Target_Status", 1000);  
-  ICARUS_Target_Status Target_Status;
+  ros::Publisher Pub_ICARUS_Target_Status = nh.advertise<icarus_rover_rc::ICARUS_Target_Status>("ICARUS_Target_Status", 1000);  
+  ::icarus_rover_rc::ICARUS_Target_Status Target_Status;
   if (SHOW_IMAGES)
   {
     cv::namedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
@@ -217,6 +217,7 @@ int main(int argc, char **argv)
   int target1_y;
   int target2_x;
   int target2_y;
+  double target_x,target_y = 0.0;
   string token,remain;
 	while( ros::ok() && true)
 	{
@@ -264,8 +265,8 @@ int main(int argc, char **argv)
       
       continue;
     }
-    double target_x = 0.0;
-    double target_y = 0.0;
+    target_x = 0.0;
+    target_y = 0.0;
     sensor_image = orig_sensor_image.clone();
 	  sensor_image = process_image(sensor_image,threshold_value,erode_value,dilate_value);
 	  cv::Size s = sensor_image.size();
@@ -400,10 +401,10 @@ int main(int argc, char **argv)
     Target_Status.header.stamp = ros::Time::now();
     Target_Status.header.frame_id = "Target_Status";
     Target_Status.Target_Type = Target_Type;
-    Target_Status.Target_Point.x = target_x;
-    Target_Status.Target_Point.y = target_y;
+    //Target_Status.Target_Point.x = target_x;
+    //Target_Status.Target_Point.y = target_y;
     Pub_ICARUS_Target_Status.publish(Target_Status);    
-	  }
+	  
     ROS_INFO("FPS: %f x: %f y: %f",1.0/dtime,target_x,target_y);
   }
   if (run_live==0)
