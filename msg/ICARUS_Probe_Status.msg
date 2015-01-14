@@ -1,5 +1,5 @@
 Header header
-int Probe_State
-int Extended_Switch
-int Retracted_Switch
-int Probe_Error
+int64 Probe_State
+int64 Extended_Switch
+int64 Retracted_Switch
+int64 Probe_Error

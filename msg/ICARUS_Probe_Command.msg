@@ -1,4 +1,4 @@
 Header header
-int Charge_Command
+int64 Charge_Command
 
 
