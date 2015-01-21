@@ -1,4 +1,4 @@
-Blur,XOrder:,YOrder:,Sobel Kerne:Score,FPS
+Blur,XOrder,YOrder,Sobel Kernel,Score,FPS
 1,1,1,1,61.8927,2.09881
 1,1,1,3,61.8927,2.10233
 1,1,1,5,60.8471,2.11413
