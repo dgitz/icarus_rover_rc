@@ -34,6 +34,7 @@ using namespace cv;
  
 //Declare a string with the name of the window that we will create using OpenCV where processed images will be displayed.
 static const char WINDOW[] = "Image w/ Overlay";
+static const char WINDOW1[] = "Helper Image 1";
 int SHOW_IMAGES = 0;
 string detect_method;
 string filter_method;
@@ -93,23 +94,16 @@ double evaluate_target(double target_x, double target_y,double target1_x, double
 cv::Mat process_image(cv::Mat image,int threshold,int erode,int dilate)
 {
   cv::Mat processed_image;
-  //cv::equalizeHist( image, image );
-  /*
-  cv::threshold(image, image, threshold, 255, CV_THRESH_BINARY);
-  cv::Mat element_erode = getStructuringElement(cv::MORPH_CROSS,
-              cv::Size(2 * erode + 1, 2 * erode + 1),
-              cv::Point(erode, erode) );
-  cv::Mat element_dilate = getStructuringElement(cv::MORPH_CROSS,
-              cv::Size(2 * dilate + 1, 2 * dilate + 1),
-              cv::Point(dilate, dilate) );
-       // Apply erosion or dilation on the image
-  cv::erode(image,image,element_erode); 
-  cv::dilate(image,image,element_dilate);
-  if(filter_method.compare("DIGITAL") == 0)
-  {
-  }
-  */
-  return image;
+  cv::blur(image,processed_image,Size(5,5));
+  //cv::Sobel(processed_image,processed_image,CV_8U,1,0,3,1,0);
+  //cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
+   if (SHOW_IMAGES)
+	  {
+	    
+      imshow(WINDOW1,processed_image);
+	    cv::waitKey(1);
+	  }
+  return processed_image;
 }
 void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
 {
@@ -140,7 +134,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
   
 
 int main(int argc, char **argv)
-{
+{ 
 
 
   
@@ -164,6 +158,7 @@ int main(int argc, char **argv)
   if (SHOW_IMAGES)
   {
     cv::namedWindow(WINDOW, CV_WINDOW_AUTOSIZE);
+    cv::namedWindow(WINDOW1,CV_WINDOW_AUTOSIZE);
   }
   double fps = 0.0;
 	template_image_path = root_directory + "media/Templates/" + template_image_name + ".png";
@@ -415,6 +410,7 @@ int main(int argc, char **argv)
 	if (SHOW_IMAGES)
 	{
 	  cv::destroyWindow(WINDOW);
+    cv::destroyWindow(WINDOW1);
 	}
 
 

@@ -90,7 +90,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
    INCLUDE_DIRS include
-#  LIBRARIES beginner_tutorials
+  LIBRARIES RoboPiLib
   CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs
 #  DEPENDS system_lib
 )
@@ -103,6 +103,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(include
+ 
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -117,7 +118,7 @@ include_directories(include
 add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 add_executable(tune_targeting src/tune_targeting.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
-add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
+#add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -146,16 +147,16 @@ target_link_libraries(tune_targeting
 )
 
 target_link_libraries(Targeting_Node
-	${catkin_LIBRARIES}
+  ${RoboPiLib}
+  ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES}
 	#${PROJECT_SOURCE_DIR}
 )		
 
-target_link_libraries(Motion_Controller_Node
-	${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES}
-	#${PROJECT_SOURCE_DIR}
-)		
+#target_link_libraries(Motion_Controller_Node
+#  ${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES} 
+#)		
 #############
 ## Install ##
 #############
