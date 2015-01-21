@@ -92,6 +92,9 @@ double evaluate_target(double target_x, double target_y,double target1_x, double
 cv::Mat process_image(cv::Mat image,int blur_value,int xorder_value,int yorder_value,int sobel_kernel_value)
 {
   cv::Mat processed_image;
+  try
+  {
+  
   cv::blur(image,processed_image,Size(blur_value,blur_value));
   cv::Sobel(processed_image,processed_image,CV_8U,xorder_value,yorder_value,sobel_kernel_value,1,0);
   cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
@@ -101,6 +104,11 @@ cv::Mat process_image(cv::Mat image,int blur_value,int xorder_value,int yorder_v
       imshow(WINDOW1,processed_image);
 	    cv::waitKey(1);
 	  }
+  }
+  catch(const std::exception& ex)
+  {
+    processed_image = cv::Mat::zeros( 640, 480, CV_8U );
+  }
   return processed_image;
 }
 int main(int argc, char **argv)
