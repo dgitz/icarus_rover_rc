@@ -50,9 +50,13 @@ fstream result_file;
 string root_directory;
 string template_image_name;
 string template_image_path;
-int blur_max;
-int order_max;
-int sobel_kernel_max;
+
+int param1_start,param1_stop,param1_count;
+int param2_start,param2_stop,param2_count;
+int param3_start,param3_stop,param3_count;
+int param4_start,param4_stop,param4_count;
+int param5_start,param5_stop,param5_count;
+string param1_name,param2_name,param3_name,param4_name,param5_name;
 
 
 //target_file.open(
@@ -89,15 +93,16 @@ double evaluate_target(double target_x, double target_y,double target1_x, double
   return score;
 }
 
-cv::Mat process_image(cv::Mat image,int blur_value,int xorder_value,int yorder_value,int sobel_kernel_value)
+cv::Mat process_image(cv::Mat image,int value1, int value2, int value3, int value4, int value5)
 {
   cv::Mat processed_image;
   try
   {
-  
-  cv::blur(image,processed_image,Size(blur_value,blur_value));
-  cv::Sobel(processed_image,processed_image,CV_8U,xorder_value,yorder_value,sobel_kernel_value,1,0);
-  cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
+    //processed_image = image;
+    cv::blur(image,processed_image,Size(value1,value1));
+    cv::equalizeHist( image, processed_image );
+  //cv::Sobel(processed_image,processed_image,CV_8U,value2,value3,value4,1,0);
+  //cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
    if (SHOW_IMAGES)
 	  {
 	    
@@ -133,237 +138,333 @@ int main(int argc, char **argv)
   nh.getParam("detect_method",detect_method);
   nh.getParam("filter_method",filter_method);
  
-  nh.getParam("blur_max",blur_max);
-  nh.getParam("order_max",order_max);
-  nh.getParam("sobel_kernel_max",sobel_kernel_max);
+  nh.getParam("param1_start",param1_start);
+  nh.getParam("param1_stop",param1_stop);
+  nh.getParam("param1_count",param1_count);
+  nh.getParam("param1_name",param1_name);
 
-  int BLURs[blur_max];
- 
-  for(int i=0;i<=(blur_max);i++)
+  nh.getParam("param2_start",param2_start);
+  nh.getParam("param2_stop",param2_stop);
+  nh.getParam("param2_count",param2_count);
+  nh.getParam("param2_name",param2_name);
+
+  nh.getParam("param3_start",param3_start);
+  nh.getParam("param3_stop",param3_stop);
+  nh.getParam("param3_count",param3_count);
+  nh.getParam("param3_name",param3_name);
+
+  nh.getParam("param4_start",param4_start);
+  nh.getParam("param4_stop",param4_stop);
+  nh.getParam("param4_count",param4_count);
+  nh.getParam("param4_name",param4_name);
+
+  nh.getParam("param5_start",param5_start);
+  nh.getParam("param5_stop",param5_stop);
+  nh.getParam("param5_count",param5_count);
+  nh.getParam("param5_name",param5_name);
+
+  int PARAM1s[param1_count];
+  int PARAM2s[param2_count];
+  int PARAM3s[param3_count];
+  int PARAM4s[param4_count];
+  int PARAM5s[param5_count];
+  
+  PARAM1s[0] = param1_start;
+  PARAM2s[0] = param2_start;
+  PARAM3s[0] = param3_start;
+  PARAM4s[0] = param4_start;
+  PARAM5s[0] = param5_start;
+  if (param1_count > 0)
   {
-    BLURs[i] = i+1;
+    for(int i=1;i<param1_count;i++)
+    {
+      PARAM1s[i] = PARAM1s[i-1] + (int)((param1_stop-param1_start+1)/param1_count);
+    }
   }
-  int XORDERs[order_max];
-  int YORDERs[order_max];
-  for(int i=1;i<=order_max;i++)
+  else
   {
-    XORDERs[i-1]=i;
-    YORDERs[i-1] = i;
-    
+    for(int i=0;i<param1_count;i++)
+    {
+      PARAM1s[i] = 0;
+    }
   }
-  int SOBEL_KERNELs [4]  = {1,3,5,7};
-  int blur_index,xorder_index,yorder_index,sobel_kernel_index = 0;
- 
+  if (param2_count > 0)
+  {
+    for(int i=1;i<param2_count;i++)
+    {
+      PARAM2s[i] = PARAM2s[i-1] + (int)((param2_stop-param2_start+1)/param2_count);
+    }
+  }
+  else
+  {
+     for(int i=0;i<param2_count;i++)
+    {
+      PARAM2s[i] = 0;
+    }
+  }
+  if (param3_count > 0)
+  {
+    for(int i=1;i<param3_count;i++)
+    {
+      PARAM3s[i] = PARAM3s[i-1] + (int)((param3_stop-param3_start+1)/param3_count);
+    }
+  }
+  else
+  {
+    for(int i=0;i<param3_count;i++)
+    {
+      PARAM3s[i] = 0;
+    }
+  }
+  if (param4_count > 0)
+  {
+    for(int i=1;i<param4_count;i++)
+    {
+      PARAM4s[i] = PARAM4s[i-1] + (int)((param4_stop-param4_start+1)/param4_count);
+    }
+  }
+  else
+  {
+    for(int i=0;i<param4_count;i++)
+    {
+      PARAM4s[i] = 0;
+    }
+  }
+  if (param5_count > 0)
+  {
+    for(int i=0;i<param5_count;i++)
+    {
+      PARAM5s[i] = 0;
+    }
+  }
+  else
+  {
+    for(int i=0;i<param5_count;i++)
+    {
+      PARAM5s[i] = 0;
+    }
+  }
+  
 
   result_filename = root_directory + "result_files/" + result_name + ".csv";
   result_file.open(result_filename.c_str(), fstream::out);
-  result_file << "Blur" << "," << "XOrder:" << "," << "YOrder:" << "," << "Sobel Kerne:" << "Score" << "," << "FPS" << endl;
+  result_file << param1_name << "," << param2_name << "," << param3_name << "," << param4_name << "," << param5_name << "," << "Score,"  << "FPS" << endl;
         
-  for(blur_index=0;blur_index<=(blur_max);blur_index++)
+  for(int param1_index=0;param1_index<param1_count;param1_index++)
   {
-    for(xorder_index=0;xorder_index<order_max;xorder_index++)
+    if(param1_count < 1) { continue; }
+    for(int param2_index=0;param2_index<param2_count;param2_index++)
     {
-      for(yorder_index=0;yorder_index<order_max;yorder_index++)
+      if(param2_count < 1) { continue; }
+      for(int param3_index=0;param3_index<param3_count;param3_index++)
       {
-        for(sobel_kernel_index=0;sobel_kernel_index<4;sobel_kernel_index++)
+        if(param3_count < 1) { continue; }
+        for(int param4_index=0;param4_index<param4_count;param4_index++)
         {
-          ROS_INFO("Blur:%d XOrder:%d YOrder: %d Sobel Kernel: %d",BLURs[blur_index],XORDERs[xorder_index],YORDERs[yorder_index],SOBEL_KERNELs[sobel_kernel_index]);
-          double fps = 0.0;
-          template_image_path = root_directory + "media/Templates/" + template_image_name + ".png";
-          raw_image = imread(template_image_path.c_str(),CV_LOAD_IMAGE_GRAYSCALE);
-          cv::resize(raw_image,template_image, Size(), 3, 3, INTER_LINEAR );
-          template_image = process_image(template_image,BLURs[blur_index],XORDERs[xorder_index],YORDERs[yorder_index],SOBEL_KERNELs[sobel_kernel_index]);
-          ros::Rate loop_rate(1000);
-          image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
-          target_filename = root_directory + "target_files/" + picked_date + ".csv";
-          target_file.open(target_filename.c_str(), fstream::in);
-          vector<string> image_names = vector<string>();
-          string tempstr;
-          int image_count = image_names.size()-2;
-          vector<KeyPoint> template_keypoints,sensor_keypoints;
-          cv::Mat template_descriptor,sensor_descriptor;
-
-          int numKeyPoints = 1500;
-	        float distThreshold = 15.0;
-	        cv::FeatureDetector * orb_detector = new cv::ORB();
-	        cv::DescriptorExtractor * orb_extractor = new cv::ORB();
-	        if (detect_method.compare("ORB") == 0)
-	        {
-	          orb_detector->detect(template_image,template_keypoints);
-	          orb_extractor->compute(template_image,template_keypoints,template_descriptor);
-	        }
-         
-	        vector<DMatch>matches;
-	          
-                  
-          std::clock_t    start;
-          
-          double etime,dtime = 0.0;
-          int image_counter = 0;
-          double total_score = 0.0;
-          double myscore = 0.0;
-          int Height = 1;
-          int Width = 1;
-          while(getline(target_file,tempstr) && ros::ok() && true)
+          if(param4_count < 1) { continue; }
+          for(int param5_index=0;param5_index<param5_count;param5_index++)
           {
+            if(param5_count < 1) { continue; }
             
-            ros::spinOnce();
-            loop_rate.sleep();
-            image_counter++;
-            start = std::clock();
-            string token,remain;
-            token = tempstr.substr(0,tempstr.find(","));
-            remain = tempstr.substr(token.length()+1);
-            
-            image_filename = token;
-            
-            token = remain.substr(0,remain.find(","));
-            remain = remain.substr(token.length()+1);
-            int target1_x = std::atoi(token.c_str());
-            
-            token = remain.substr(0,remain.find(","));
-            remain = remain.substr(token.length()+1);
-            int target1_y = std::atoi(token.c_str());    
-            
-            token = remain.substr(0,remain.find(","));
-            remain = remain.substr(token.length()+1);
-            int target2_x = std::atoi(token.c_str()); 
+            ROS_INFO("%s:%d %s:%d %s:%d %s:%d %s:%d",param1_name.c_str(),PARAM1s[param1_index],param2_name.c_str(),PARAM2s[param2_index],param3_name.c_str(),PARAM3s[param3_index],
+              param4_name.c_str(),PARAM4s[param4_index],param5_name.c_str(),PARAM5s[param5_index]);
+            double fps = 0.0;
+            template_image_path = root_directory + "media/Templates/" + template_image_name + ".png";
+            raw_image = imread(template_image_path.c_str(),CV_LOAD_IMAGE_GRAYSCALE);
+            cv::resize(raw_image,template_image, Size(), 3, 3, INTER_LINEAR );
+            template_image = process_image(template_image,PARAM1s[param1_index],PARAM2s[param2_index],PARAM3s[param3_index],PARAM4s[param4_index],PARAM5s[param5_index]);
+            ros::Rate loop_rate(1000);
+            image_folder = root_directory + "media/imagesamples-" + capture_date + "/";
+            target_filename = root_directory + "target_files/" + picked_date + ".csv";
+            target_file.open(target_filename.c_str(), fstream::in);
+            vector<string> image_names = vector<string>();
+            string tempstr;
+            int image_count = image_names.size()-2;
+            vector<KeyPoint> template_keypoints,sensor_keypoints;
+            cv::Mat template_descriptor,sensor_descriptor;
 
-            token = remain.substr(0,remain.find(","));
-            int target2_y = std::atoi(token.c_str());     
-            double target_x = 0.0; 
-            double target_y = 0.0;
+            int numKeyPoints = 1500;
+	          float distThreshold = 15.0;
+	          cv::FeatureDetector * orb_detector = new cv::ORB();
+	          cv::DescriptorExtractor * orb_extractor = new cv::ORB();
+	          if (detect_method.compare("ORB") == 0)
+	          {
+	            orb_detector->detect(template_image,template_keypoints);
+	            orb_extractor->compute(template_image,template_keypoints,template_descriptor);
+	          }
+           
+	          vector<DMatch>matches;
+	            
+                    
+            std::clock_t    start;
             
-            //ROS_INFO("T1_x:%d T1_y:%d T2_x:%d T2_y:%d",target1_x,target1_y,target2_x,target2_y);
-            image_filepath = image_folder + image_filename;
-            orig_sensor_image = imread(image_filepath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
-            sensor_image = orig_sensor_image.clone();
-            sensor_image = process_image(sensor_image,BLURs[blur_index],XORDERs[xorder_index],YORDERs[yorder_index],SOBEL_KERNELs[sobel_kernel_index]);
-            //cv::Size s = sensor_image.size();
-            Height = 480;
-            Width = 640;
-            try
+            double etime,dtime = 0.0;
+            int image_counter = 0;
+            double total_score = 0.0;
+            double myscore = 0.0;
+            int Height = 1;
+            int Width = 1;
+            while(getline(target_file,tempstr) && ros::ok() && true)
             {
               
-              if (detect_method.compare("ORB") == 0)
-	            {
-	              orb_detector->detect(sensor_image,sensor_keypoints);
-	              orb_extractor->compute(sensor_image,sensor_keypoints,sensor_descriptor);
-                cv::BFMatcher orb_matcher(cv::NORM_HAMMING2);
-                orb_matcher.match(template_descriptor,sensor_descriptor,matches);  
-	            }
-            
-              double max_dist = 0;
-              double min_dist = 100;
-              for( int i = 0; i < template_descriptor.rows; i++ )
-              { 
-                double dist = matches[i].distance;
-                if( dist < min_dist ) min_dist = dist;
-                if( dist > max_dist ) max_dist = dist;
-              }
+              ros::spinOnce();
+              loop_rate.sleep();
+              image_counter++;
+              start = std::clock();
+              string token,remain;
+              token = tempstr.substr(0,tempstr.find(","));
+              remain = tempstr.substr(token.length()+1);
               
-              //ROS_INFO("-- Max dist : %f \n", max_dist );
-              //ROS_INFO("-- Min dist : %f \n", min_dist );
+              image_filename = token;
+              
+              token = remain.substr(0,remain.find(","));
+              remain = remain.substr(token.length()+1);
+              int target1_x = std::atoi(token.c_str());
+              
+              token = remain.substr(0,remain.find(","));
+              remain = remain.substr(token.length()+1);
+              int target1_y = std::atoi(token.c_str());    
+              
+              token = remain.substr(0,remain.find(","));
+              remain = remain.substr(token.length()+1);
+              int target2_x = std::atoi(token.c_str()); 
 
-              std::vector< DMatch > good_matches;
-              //surf_matcher.knnMatch(template_descriptor, des_image, matches, 2);
-              for( int i = 0; i < template_descriptor.rows; i++ )
-              { 
-                if( matches[i].distance < 3*min_dist )
+              token = remain.substr(0,remain.find(","));
+              int target2_y = std::atoi(token.c_str());     
+              double target_x = 0.0; 
+              double target_y = 0.0;
+              
+              //ROS_INFO("T1_x:%d T1_y:%d T2_x:%d T2_y:%d",target1_x,target1_y,target2_x,target2_y);
+              image_filepath = image_folder + image_filename;
+              orig_sensor_image = imread(image_filepath.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+              sensor_image = orig_sensor_image.clone();
+              sensor_image = process_image(sensor_image,PARAM1s[param1_index],PARAM2s[param2_index],PARAM3s[param3_index],PARAM4s[param4_index],PARAM5s[param5_index]);
+              //cv::Size s = sensor_image.size();
+              Height = 480;
+              Width = 640;
+              try
+              {
+                
+                if (detect_method.compare("ORB") == 0)
+	              {
+	                orb_detector->detect(sensor_image,sensor_keypoints);
+	                orb_extractor->compute(sensor_image,sensor_keypoints,sensor_descriptor);
+                  cv::BFMatcher orb_matcher(cv::NORM_HAMMING2);
+                  orb_matcher.match(template_descriptor,sensor_descriptor,matches);  
+	              }
+              
+                double max_dist = 0;
+                double min_dist = 100;
+                for( int i = 0; i < template_descriptor.rows; i++ )
                 { 
-                  good_matches.push_back( matches[i]); 
+                  double dist = matches[i].distance;
+                  if( dist < min_dist ) min_dist = dist;
+                  if( dist > max_dist ) max_dist = dist;
                 }
-              }
+                
+                //ROS_INFO("-- Max dist : %f \n", max_dist );
+                //ROS_INFO("-- Min dist : %f \n", min_dist );
 
-              
-              std::vector<Point2f> obj;
-              std::vector<Point2f> scene;
+                std::vector< DMatch > good_matches;
+                //surf_matcher.knnMatch(template_descriptor, des_image, matches, 2);
+                for( int i = 0; i < template_descriptor.rows; i++ )
+                { 
+                  if( matches[i].distance < 3*min_dist )
+                  { 
+                    good_matches.push_back( matches[i]); 
+                  }
+                }
 
-              for( int i = 0; i < good_matches.size(); i++ )
+                
+                std::vector<Point2f> obj;
+                std::vector<Point2f> scene;
+
+                for( int i = 0; i < good_matches.size(); i++ )
+                {
+                  //-- Get the keypoints from the good matches
+                  obj.push_back( template_keypoints[ good_matches[i].queryIdx ].pt );
+                  scene.push_back( sensor_keypoints[ good_matches[i].trainIdx ].pt );
+                }
+
+                Mat H = findHomography( obj, scene, CV_RANSAC );
+
+                //-- Get the corners from the image_1 ( the object to be "detected" )
+                std::vector<Point2f> obj_corners(4);
+                obj_corners[0] = cvPoint(0,0); 
+                obj_corners[1] = cvPoint( template_image.cols, 0 );
+                obj_corners[2] = cvPoint( template_image.cols, template_image.rows ); 
+                obj_corners[3] = cvPoint( 0, template_image.rows );
+                std::vector<Point2f> scene_corners(4);
+
+                perspectiveTransform( obj_corners, scene_corners, H);
+
+                //-- Draw lines between the corners (the mapped object in the scene - image_2 )
+                /*line( img_matches, scene_corners[0] + Point2f( template_image.cols, 0), scene_corners[1] + Point2f( template_image.cols, 0), Scalar(0, 255, 0), 4 );
+                line( img_matches, scene_corners[1] + Point2f( template_image.cols, 0), scene_corners[2] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );
+                line( img_matches, scene_corners[2] + Point2f( template_image.cols, 0), scene_corners[3] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );
+                line( img_matches, scene_corners[3] + Point2f( template_image.cols, 0), scene_corners[0] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );*/
+
+              //-- Show detected matches
+
+
+              for(int i = 0;i<4;i++)
               {
-                //-- Get the keypoints from the good matches
-                obj.push_back( template_keypoints[ good_matches[i].queryIdx ].pt );
-                scene.push_back( sensor_keypoints[ good_matches[i].trainIdx ].pt );
+                  target_x += scene_corners[i].x;
+                  target_y += scene_corners[i].y;
               }
 
-              Mat H = findHomography( obj, scene, CV_RANSAC );
-
-              //-- Get the corners from the image_1 ( the object to be "detected" )
-              std::vector<Point2f> obj_corners(4);
-              obj_corners[0] = cvPoint(0,0); 
-              obj_corners[1] = cvPoint( template_image.cols, 0 );
-              obj_corners[2] = cvPoint( template_image.cols, template_image.rows ); 
-              obj_corners[3] = cvPoint( 0, template_image.rows );
-              std::vector<Point2f> scene_corners(4);
-
-              perspectiveTransform( obj_corners, scene_corners, H);
-
-              //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-              /*line( img_matches, scene_corners[0] + Point2f( template_image.cols, 0), scene_corners[1] + Point2f( template_image.cols, 0), Scalar(0, 255, 0), 4 );
-              line( img_matches, scene_corners[1] + Point2f( template_image.cols, 0), scene_corners[2] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );
-              line( img_matches, scene_corners[2] + Point2f( template_image.cols, 0), scene_corners[3] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );
-              line( img_matches, scene_corners[3] + Point2f( template_image.cols, 0), scene_corners[0] + Point2f( template_image.cols, 0), Scalar( 0, 255, 0), 4 );*/
-
-            //-- Show detected matches
-
-
-            for(int i = 0;i<4;i++)
-            {
-                target_x += scene_corners[i].x;
-                target_y += scene_corners[i].y;
-            }
-
-            target_x = target_x/4;
-            target_y = target_y/4;
-            if ((good_matches.size() < 4) or (target_x < 0) or (target_y < 0))
-            {
-              target_x = -1.0;
-              target_y = -1.0;
-            }
-            
-            
-              if (SHOW_IMAGES)
+              target_x = target_x/4;
+              target_y = target_y/4;
+              if ((good_matches.size() < 4) or (target_x < 0) or (target_y < 0))
               {
-                cv::circle(orig_sensor_image,Point(target_x,target_y),15,cv::Scalar(0,0,255),CV_FILLED,8,0);
-                cv::resize(orig_sensor_image,orig_sensor_image, Size(), .5, .5, INTER_LINEAR );
-                std::ostringstream ss;
-                ss << "FPS:" << 1/dtime;
-                tempstr = ss.str();
-                cv::putText(orig_sensor_image, tempstr.c_str(), cvPoint(30,30),FONT_HERSHEY_COMPLEX_SMALL, 1, cvScalar(0,0,255), 1, CV_AA);
-                imshow(WINDOW,orig_sensor_image);
-	              cv::waitKey(1);
-            
+                target_x = -1.0;
+                target_y = -1.0;
               }
-              dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-              etime += dtime;
               
+              
+                if (SHOW_IMAGES)
+                {
+                  cv::circle(orig_sensor_image,Point(target_x,target_y),15,cv::Scalar(0,0,255),CV_FILLED,8,0);
+                  cv::resize(orig_sensor_image,orig_sensor_image, Size(), .5, .5, INTER_LINEAR );
+                  std::ostringstream ss;
+                  ss << "FPS:" << 1/dtime;
+                  tempstr = ss.str();
+                  cv::putText(orig_sensor_image, tempstr.c_str(), cvPoint(30,30),FONT_HERSHEY_COMPLEX_SMALL, 1, cvScalar(0,0,255), 1, CV_AA);
+                  imshow(WINDOW,orig_sensor_image);
+	                cv::waitKey(1);
+              
+                }
+                dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+                etime += dtime;
+                
+              }
+              catch(const std::exception& ex)
+              {
+                //ROS_INFO("ERROR:%s",ex.what());
+                target_x = -1.0;
+                target_y = -1.0;
+              }
+              myscore = evaluate_target(target_x,target_y,target1_x,target1_y,target2_x,target2_y,Height,Width);
+              total_score += myscore;
+              ROS_INFO("Processed Image:%s with Score:%f",image_filename.c_str(),myscore);
             }
-            catch(const std::exception& ex)
+            target_file.close();
+            total_score = 100*(1.0-total_score/(image_counter*800));
+            fps = (double)image_counter/etime;
+            if (etime < 1)
             {
-              //ROS_INFO("ERROR:%s",ex.what());
-              target_x = -1.0;
-              target_y = -1.0;
+              fps = 0.0;
             }
-            myscore = evaluate_target(target_x,target_y,target1_x,target1_y,target2_x,target2_y,Height,Width);
-            total_score += myscore;
-            ROS_INFO("Processed Image:%s with Score:%f",image_filename.c_str(),myscore);
-          }
-          target_file.close();
-          total_score = 100*(1.0-total_score/(image_counter*800));
-          fps = (double)image_counter/etime;
-          if (etime < 1)
-          {
-            fps = 0.0;
-          }
-          ROS_INFO("Blur:%d XOrder:%d YOrder: %d Sobel Kernel: %d Success Rate:%f",BLURs[blur_index],XORDERs[xorder_index],YORDERs[yorder_index],SOBEL_KERNELs[sobel_kernel_index],total_score);
-          ROS_INFO("FPS:%f",fps);
-          dtime = 0.0;
-          etime = 0.0;
-          result_file << BLURs[blur_index] << "," << XORDERs[xorder_index] << "," << YORDERs[yorder_index] << "," << SOBEL_KERNELs[sobel_kernel_index] << "," << total_score <<  "," << fps << endl;
-          if (SHOW_IMAGES)
-          {
-            cv::destroyWindow(WINDOW);
-            cv::destroyWindow(WINDOW1);
+            ROS_INFO("%s:%d %s:%d %s:%d %s:%d %s:%d Success Rate:%f FPS:%f",param1_name.c_str(),PARAM1s[param1_index],param2_name.c_str(),PARAM2s[param2_index],param3_name.c_str(),PARAM3s[param3_index],
+              param4_name.c_str(),PARAM4s[param4_index],param5_name.c_str(),PARAM5s[param5_index],total_score,fps);
+            dtime = 0.0;
+            etime = 0.0;
+            result_file << PARAM1s[param1_index] << "," << PARAM2s[param2_index] << "," << PARAM3s[param3_index] << "," << PARAM4s[param4_index] << "," << PARAM5s[param5_index] << "," << total_score <<  "," << fps << endl;
+            if (SHOW_IMAGES)
+            {
+              cv::destroyWindow(WINDOW);
+              cv::destroyWindow(WINDOW1);
+            }
           }
         }
       }

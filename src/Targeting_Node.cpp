@@ -93,10 +93,10 @@ double evaluate_target(double target_x, double target_y,double target1_x, double
 }
 cv::Mat process_image(cv::Mat image,int threshold,int erode,int dilate)
 {
-  cv::Mat processed_image;
+  cv::Mat processed_image;// = image;
   cv::blur(image,processed_image,Size(5,5));
-  //cv::Sobel(processed_image,processed_image,CV_8U,1,0,3,1,0);
-  //cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
+  cv::Sobel(processed_image,processed_image,CV_8U,1,0,3,1,0);
+  cv::threshold(processed_image,processed_image,0,255,CV_THRESH_OTSU+CV_THRESH_BINARY);
    if (SHOW_IMAGES)
 	  {
 	    

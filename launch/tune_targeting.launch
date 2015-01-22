@@ -2,14 +2,35 @@
 <launch>
   <param name="capture_date" value="9Dec2014" />
   <param name="picked_date" value="9Dec2014" />
-  <param name="result_name" value="20Jan2015" />
+  <param name="result_name" value="21Jan2015" />
   <param name="show_images" value="0" />
   <param name="detect_method" value="ORB" />
   <param name="filter" value="DIGITAL_FILTER" />
   
-  <param name="blur_max" value="11" />
+  <param name="param1_name" value="Blur" />
+  <param name="param1_start" value ="1" />
+  <param name="param1_stop" value ="25" />
+  <param name="param1_count" value ="25" />
   
-  <param name="order_max" value="4" />
+  <param name="param2_name" value="NOTUSED" />
+  <param name="param2_start" value ="1" />
+  <param name="param2_stop" value ="12" />
+  <param name="param2_count" value ="1" />
+
+  <param name="param3_name" value="NOTUSED" />
+  <param name="param3_start" value ="1" />
+  <param name="param3_stop" value ="12" />
+  <param name="param3_count" value ="1" />
+
+  <param name="param4_name" value="NOTUSED" />
+  <param name="param4_start" value ="1" />
+  <param name="param4_stop" value ="12" />
+  <param name="param4_count" value ="1" />
+
+  <param name="param5_name" value="NOTUSED" />
+  <param name="param5_start" value ="1" />
+  <param name="param5_stop" value ="12" />
+  <param name="param5_count" value ="1" />
 
 
   <param name="root_directory" value="/home/linaro/catkin_ws/src/icarus_rover_rc/" />
