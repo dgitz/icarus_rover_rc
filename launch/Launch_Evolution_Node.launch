@@ -1,0 +1,7 @@
+<!--xml-->
+<launch>
+  
+  <node name="Evolution_Node" pkg="icarus_rover_rc" type="Evolution_Node" output="screen">
+   
+  </node>
+</launch>

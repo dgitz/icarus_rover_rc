@@ -109,16 +109,15 @@ include_directories(include
 )
 
 ## Declare a cpp library
-# add_library(icarus_rover_rc
-#   src/${PROJECT_NAME}/icarus_rover_rc.cpp
-# )
+ add_library(Evolution src/Evolution.cpp)
 
 ## Declare a cpp executable
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
 add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 add_executable(tune_targeting src/tune_targeting.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
-add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
+#add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
+add_executable(Evolution_Node src/Evolution_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -153,11 +152,18 @@ target_link_libraries(Targeting_Node
 	#${PROJECT_SOURCE_DIR}
 )		
 
-target_link_libraries(Motion_Controller_Node
+#target_link_libraries(Motion_Controller_Node
+#  ${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES} 
+#  /home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/RoboPiLib.o
+#)		
+
+target_link_libraries(Evolution_Node
   ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-  ${RoboPiLib}
-)		
+  ${OpenCV_LIBRARIES}
+  ${roscpp_LIBRARIES}
+  Evolution
+)
 #############
 ## Install ##
 #############
@@ -206,3 +212,9 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+##Print out all cmake variables
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+#    message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()
