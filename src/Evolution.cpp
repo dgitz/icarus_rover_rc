@@ -1,20 +1,26 @@
 #include <ros/ros.h>
 #include "../include/icarus_rover_rc/Evolution.h"
-/*void say_hello()
+Gene::Gene(double myvalue, double mymin_value, double mymax_value)
 {
-	ROS_INFO_STREAM("Hello,World!");
-}
-*/
-Gene::Gene(int myid)
-{
-  createGene(myid);
+  initGene(myvalue,mymin_value,mymax_value);
 }
 
-void Gene::createGene(int myid)
+void Gene::initGene(double myvalue, double mymin_value, double mymax_value)
 {
-  id = myid;
+  value = myvalue;
+  min_value = mymin_value;
+  max_value = mymax_value;
 }  
-int Gene::getGene()
+void Gene::mutateGene()
 {
-  return id;
 }
+double Gene::getValue()
+{
+  return value;
+}
+/*
+Gene Population::Recombine(Gene gene1,Gene gene2)
+{
+  return gene1;
+}
+*/

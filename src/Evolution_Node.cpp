@@ -36,8 +36,9 @@ int main(int argc, char **argv)
 	  lastclock = std::clock();
 	  ros::spinOnce();
 	  loop_rate.sleep();
-    Gene mygene(3);
-    ROS_INFO("%d",mygene.getGene());
+    Gene mygene(3.0,1.0,5.0);
+    ROS_INFO("%f",mygene.getValue());
+    //Gene newgene = Population::Recombine(mygene,mygene);
 	  try
     {
       dtime = (std::clock() - lastclock) / (double)(CLOCKS_PER_SEC /1);

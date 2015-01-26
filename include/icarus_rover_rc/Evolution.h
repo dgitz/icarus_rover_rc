@@ -5,13 +5,21 @@
 class Gene
 {
 private:
-  int id;
+  double value;
+  double min_value;
+  double max_value;
   Gene(){};
 public:
-  Gene(int myid);
-  void createGene(int myid);
-  int getGene();
+  Gene(double myvalue, double mymin_value, double mymax_value);
+  void initGene(double myvalue, double mymin_value, double mymax_value);
+  double getValue();
+  void mutateGene();
 };
 
+class Population
+{
+public:
+  Gene Recombine(Gene gene1, Gene gene2);
+};
 #endif
 
