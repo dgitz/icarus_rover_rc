@@ -60,7 +60,7 @@ int Target_Type = TARGET_NONE;
 //target_file.open(
 int targets[2][2];
 int target_counter = 0;
-image_transport::Publisher pub;
+image_transport::Publisher pub_image;
 cv_bridge::CvImagePtr cv_ptr;
   cv::Mat sensor_image;
 cv::Mat orig_sensor_image;
@@ -117,6 +117,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
         orig_sensor_image = cv_ptr->image.clone();
         cvtColor(orig_sensor_image, orig_sensor_image, CV_BGR2GRAY);
         cv::resize(orig_sensor_image, orig_sensor_image, Size(640, 480), 0, 0, INTER_CUBIC);
+        pub_image.publish(cv_ptr->toImageMsg());
         image_ready = 1;
         
     }
@@ -129,7 +130,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& original_image)
 	
 	
 
-        //pub.publish(cv_ptr->toImageMsg());
+        
 }
   
 

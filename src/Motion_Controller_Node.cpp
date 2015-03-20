@@ -12,10 +12,18 @@
 #include <dirent.h>
 #include <iomanip>
 #include <ctime>
+#include <fcntl.h>
+#include <errno.h>
+#include <termios.h>
+#include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
 #include "icarus_rover_rc/ICARUS_Probe_Status.h"
 #include "icarus_rover_rc/ICARUS_Probe_Command.h"
-#include "icarus_rover_rc/RoboPiLib.h"
+
+int servoWrite(int pin,int value);
+int digitalRead(int pin);
+int pingRead(int pin);
+void test_uart();
 
 using namespace std;
 
@@ -39,10 +47,6 @@ void ICARUS_Probe_Command_Callback(const icarus_rover_rc::ICARUS_Probe_Command::
   //ROS_INFO("I heard: [%s]", msg->data.c_str());
   Recharge_Command = 0;//msg.Charge_Command;
   
-}
-int Read_Distance(int Sonar_Pin)
-{
-  int dist = 0;
 }
 void Recharge_FSM(double dtime)
 {
@@ -93,25 +97,51 @@ void Recharge_FSM(double dtime)
 }
 int main(int argc, char **argv)
 {
+  int INITIALIZED = 0;
   ros::init(argc, argv, "Motion_Controller");
   ros::NodeHandle nh;
   //nh.getParam("target_count",target_count);
   nh.getParam("mc_device",MC_Device);
   nh.getParam("baudrate",Baud_Rate);
+  int mc_device;
+  struct termios oldtio,newtio;
+	char buf[255];
+  int res;
+  
+  mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+  if (mc_device  == -1)
+  {
+    ROS_INFO("ERROR: UNABLE TO OPEN SERIAL PORT.");
+  }
+  else
+  {
+    
+    INITIALIZED = 1;
+    tcgetattr(mc_device,&oldtio);
+	  bzero(&newtio, sizeof(newtio));
+	  newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+    //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
+	  newtio.c_iflag = IGNPAR;
+	  newtio.c_oflag = 0;
+	  newtio.c_lflag = 0;
+	  newtio.c_cc[VTIME]    = 0;
+	  newtio.c_cc[VMIN]     = 1;
+
+	  tcflush(mc_device, TCIFLUSH);
+	  tcsetattr(mc_device,TCSANOW,&newtio);
+  }
+
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
   ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(1);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
   sensor_msgs::LaserScan Sonar_Scan;
 	//LaserScan Sonar_Scan;
-  pinMode(EXTENDED_SWITCH_PIN,  INPUT);
-  pinMode(RETRACTED_SWITCH_PIN, INPUT);
-  pinMode(WINCH_MOTOR_PIN,SERVO);
-  ::RoboPiInit(const_cast<char*>(MC_Device.c_str()), Baud_Rate); // device = "/dev/ttyAMA0", bps = 9600..115200 matching RoboPi config
-
-	while( ros::ok() && true)
+  
+	while( ros::ok() && INITIALIZED)
 	{
     
 	  start = std::clock();
@@ -120,7 +150,13 @@ int main(int argc, char **argv)
 	  
 	  try
 	  {
-	    
+	    int wr;
+      wr = write(mc_device,"HELLO, WORLD!\r\n",15);
+      res = read(mc_device,buf,255);
+      if(res > 0) 
+		  {
+        printf("%s\r\n",buf);
+      }
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
       if (digitalRead(EXTENDED_SWITCH_PIN)==0)
       {
@@ -139,7 +175,7 @@ int main(int argc, char **argv)
         Retracted_Switch = false;
       }
 
-      Recharge_FSM(dtime);
+      //Recharge_FSM(dtime);
       Probe_Status.header.stamp = ros::Time::now();
       Probe_Status.header.frame_id = "Probe_Status";
       Probe_Status.Probe_State = Probe_State;
@@ -156,7 +192,21 @@ int main(int argc, char **argv)
 	  catch(const std::exception& ex)
 	  {
 	    ROS_INFO("ERROR:%s",ex.what());
+      close(mc_device);
 	  }
   }
-  RoboPiExit(); // close the serial device
+  close(mc_device);
+  
+}
+int servoWrite(int pin,int value)
+{
+  return 0;
+}
+int digitalRead(int pin)
+{
+  return -1;
+}
+int pingRead(int pin)
+{
+  return 0;
 }

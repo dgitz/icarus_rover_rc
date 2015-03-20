@@ -1,0 +1,9 @@
+<!--xml-->
+<launch>
+  <param name="mc_device" value="/dev/ttyUSB0" />
+  <param name="baudrate" value="115200"/>
+  
+  <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
+   
+  </node>
+</launch>
