@@ -1,0 +1,9 @@
+<!--xml-->
+<launch>
+  <param name="sc_device" value="/dev/ttyUSB0" />
+  <param name="baudrate" value="115200"/>
+  <param name="rate" value="50"/>
+  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" output="screen">
+   
+  </node>
+</launch>

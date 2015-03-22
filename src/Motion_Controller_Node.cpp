@@ -135,7 +135,7 @@ int main(int argc, char **argv)
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
   ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
-  ros::Rate loop_rate(1);
+  ros::Rate loop_rate(1000);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
   sensor_msgs::LaserScan Sonar_Scan;
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
 	  try
 	  {
 	    int wr;
-      wr = write(mc_device,"HELLO, WORLD!\r\n",15);
+      //wr = write(mc_device,"HELLO, WORLD!\r\n",15);
       res = read(mc_device,buf,255);
       if(res > 0) 
 		  {

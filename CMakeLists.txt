@@ -117,6 +117,7 @@ add_executable(pick_targets_from_train_images src/pick_targets_from_train_images
 add_executable(tune_targeting src/tune_targeting.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
+add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
 #add_executable(Evolution_Node src/Evolution_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -156,7 +157,10 @@ target_link_libraries(Motion_Controller_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
 )		
-
+target_link_libraries(Sonic_Controller_Node
+  ${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES} 
+)
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}
 #  ${OpenCV_LIBRARIES}
