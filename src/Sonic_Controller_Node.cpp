@@ -26,6 +26,9 @@ string SC_Device = "";
 int Baud_Rate = -1;
 double dtime = 0.0;
 int sonic_node_rate = 0.0;
+int ping_sensor_count = 0;
+int DEBUG_MODE = 0;
+int angle_min,angle_max,range_min,range_max,angle_increment;
 
 int main(int argc, char **argv)
 {
@@ -36,11 +39,24 @@ int main(int argc, char **argv)
   nh.getParam("sc_device",SC_Device);
   nh.getParam("baudrate",Baud_Rate);
   nh.getParam("rate",sonic_node_rate);
+  nh.getParam("ping_sensor_count",ping_sensor_count);
+  nh.getParam("DEBUG_MODE",DEBUG_MODE);
+  nh.getParam("angle_min_deg",angle_min);
+  nh.getParam("angle_max_deg",angle_max);
+  nh.getParam("angle_increment_deg",angle_increment);
+  nh.getParam("range_min_inch",range_min);
+  nh.getParam("range_max_inch",range_max);
+  
   int sc_device;
   struct termios oldtio,newtio;
   int buffer_length = 255;
-	char buf[255];
+	int message_complete = 0;
+  int message_started = 0;
+  char message[256];
+  int message_index = 0;
   int res;
+  int ping_distances[ping_sensor_count];
+  int ping_index = 0;
   
   sc_device= open(SC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
   
@@ -54,14 +70,17 @@ int main(int argc, char **argv)
     INITIALIZED = 1;
     tcgetattr(sc_device,&oldtio);
 	  bzero(&newtio, sizeof(newtio));
-	  newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-    newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
-	  newtio.c_iflag = IGNPAR;
-	  newtio.c_oflag = 0;
-	  newtio.c_lflag = 0;
-	  newtio.c_cc[VTIME]    = 0;
-	  newtio.c_cc[VMIN]     = 1;
-
+	  cfsetospeed(&newtio, (speed_t)B115200);
+    cfsetispeed(&newtio, (speed_t)B115200);
+    newtio.c_cflag &= ~PARENB;
+    newtio.c_cflag &= ~CSTOPB;
+    newtio.c_cflag &= ~CSIZE;
+    newtio.c_cflag |= CS8;
+    newtio.c_cflag &= CRTSCTS;
+    newtio.c_cflag |= CREAD | CLOCAL;
+    newtio.c_cc[VMIN] = 1;
+    newtio.c_cc[VTIME] = 5;
+    cfmakeraw(&newtio);
 	  tcflush(sc_device, TCIFLUSH);
 	  tcsetattr(sc_device,TCSANOW,&newtio);
   }
@@ -83,34 +102,104 @@ int main(int argc, char **argv)
 	  {
 	    int wr;
       //wr = write(mc_device,"HELLO, WORLD!\r\n",15);
-      res = read(sc_device,buf,buffer_length);
-      if(res > 0) 
-		  {
-        string tempstr(buf);
-        int start_char_count = 0;
-        int end_char_count = 0;
-    
-        for(int i = 0; i < tempstr.size();i++)
+      char buf = '\0';
+      char response[255];
+      int index = 0;
+      res = read(sc_device,&response,255);
+      response[res] = 0;
+      //if (res > 0) { printf("xxx.%s",response); }
+      if (message_complete == 0)
+      {
+        if (message_complete == 1)
         {
-          if (tempstr[i] == '$') {start_char_count++;}
-          if (tempstr[i] == '*') {end_char_count++;}
+          break;
         }
-        //int start_char = count(tempstr.begin(),tempstr.end(),'$');
-        //int end_char = count(tempstr.begin(),tempstr.end(),'*');
-        
-        printf("%d...%d...%d...%s\r\n",tempstr.size(),start_char_count,end_char_count,tempstr.c_str());
-        
-        string msg;
-        //for(int i =0; i < tempstr.length(); i++)
-        //{
-         // if (tempstr.find("$")) { printf("Here."); }
-        //}
+        string tempstr(response);
+        for(int i = 0; i <tempstr.size();i++)
+        {
+          if (tempstr[i] == '$')
+          {
+            message_index = 0;
+            memset(&message,0,256);
+            sprintf(&message[message_index++],"$");
+            message_complete = 0;
+            message_started = 1;
+          }
+          else if ((tempstr[i] == '*') && (message_started == 1))
+          {
+            sprintf(&message[message_index++],"*");
+            message_complete = 1;
+            message_started = 0;
+          }
+          else if (message_started == 1)
+          { 
+            sprintf(&message[message_index++],"%c",tempstr[i]);
+          }
+
+        }
       }
-      
-	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-      Sonar_Scan.header.stamp = ros::Time::now();
+      if (message_complete == 1) 
+      {  
+        message_complete = 0;
+        //cout << message << endl; message_complete = 0;
+        string tempstr(message);
+        string delimiter = ",";
+        int pos = 0;
+        string token;
+        if (DEBUG_MODE > 1) { cout << message << endl; }
+        string message_type = tempstr.substr(0,tempstr.find(delimiter));
+        ping_index = 0;
+        if( message_type.compare("$SON") ==0)
+        {
+          int skipme = 1;
+          while(( pos = tempstr.find(delimiter)) != std::string::npos)
+          {
             
+            token = tempstr.substr(0,pos);
+            if (DEBUG_MODE > 2) {cout << pos << "." << token; }
+            if (skipme == 0)
+            {
+              ping_distances[ping_index++] = atol(token.c_str());
+            
+            }
+            skipme = 0;
+            tempstr.erase(0,pos+delimiter.length());
+          }
+           pos = tempstr.find("*");
+          token = tempstr.substr(0,pos);
+          if (DEBUG_MODE > 2) { cout << "." << token << endl; }
+            ping_distances[ping_index++] = atol(token.c_str());
+          
+        }
+        
+  
+      }
+      if (DEBUG_MODE > 0) { 
+      cout << "$SON";
+      for(int i = 0; i < ping_sensor_count; i++)
+      {
+        cout << "," << ping_distances[i];
+      }
+      cout << "*" << endl;}
       
+      
+      dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+      Sonar_Scan.header.stamp = ros::Time::now();
+      Sonar_Scan.header.frame_id = "sonar_frame";
+      Sonar_Scan.angle_min = (float)angle_min*3.145/180.0;
+      Sonar_Scan.angle_max = (float)angle_max*3.145/180.0;
+      Sonar_Scan.angle_increment = angle_increment*3.145/180.0;
+      Sonar_Scan.range_min = range_min;
+      Sonar_Scan.range_max = range_max;
+      Sonar_Scan.scan_time = dtime;
+      Sonar_Scan.ranges.resize(ping_sensor_count);
+      for(int i = 0; i < ping_sensor_count;i++)
+      {  
+        if (ping_distances[i] < range_min) { ping_distances[i] = range_min; }
+        else if (ping_distances[i] > range_max) { ping_distances[i] = range_max; }
+        Sonar_Scan.ranges[i] = ping_distances[i]; 
+      }
+     
       Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
 	      
 	  }
