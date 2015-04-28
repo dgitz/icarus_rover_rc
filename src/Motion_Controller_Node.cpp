@@ -175,7 +175,7 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
   sensor_msgs::LaserScan Sonar_Scan;
 	//LaserScan Sonar_Scan;
-  temp1 = 1;
+  temp1 = 0;
 	while( ros::ok() && INITIALIZED)
 	{
     
@@ -187,17 +187,12 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
 	  {
 	    int wr;
       temp1++;
-      if (temp1 > 256) { temp1 = 0; }
-      stringstream ss;
-      ss << temp1;
-      string tempstr;
-      tempstr = "$NAV,123," + ss.str() +  "*\r\n";
-      //char cmd[] = "$NAV,123,456*";
+      if (temp1 > 180) { temp1 = 0; }
+      
       char cmd[255];
       memset(cmd,'\0',sizeof cmd);
-      sprintf(cmd,"$NAV,123,%d,*\r\n",temp1);
-      //unsigned char cmd[] = "$NAV,123,456*\r\n";
-      wr = write(mc_device,cmd,sizeof(cmd)-1);//tempstr.c_str(),15);
+      sprintf(cmd,"$NAV,%d,%d,*\r\n",temp1,180-temp1);
+      wr = write(mc_device,cmd,sizeof(cmd)-1);
       char buf = '\0';
       char response[255];
       int spot = 0;
@@ -210,7 +205,6 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
       {
         
         res = read(mc_device,&buf,1);
-        //printf("%c",buf);
         sprintf(&response[spot],"%c",buf);
         spot += res;
       } while(buf != '*' && res > 0);
