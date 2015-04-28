@@ -90,11 +90,11 @@ int main(int argc, char **argv)
 	std::clock_t    start;
   sensor_msgs::LaserScan Sonar_Scan;
 	//LaserScan Sonar_Scan;
-  
+  start = std::clock();
 	while( ros::ok() && INITIALIZED)
 	{
     
-	  start = std::clock();
+	  
 	  ros::spinOnce();
 	  loop_rate.sleep();
 	  
@@ -171,7 +171,8 @@ int main(int argc, char **argv)
             ping_distances[ping_index++] = atol(token.c_str());
           
         }
-        
+        dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+        start = std::clock();
   
       }
       if (DEBUG_MODE > 0) { 
@@ -183,7 +184,7 @@ int main(int argc, char **argv)
       cout << "*" << endl;}
       
       
-      dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+      
       Sonar_Scan.header.stamp = ros::Time::now();
       Sonar_Scan.header.frame_id = "sonar_frame";
       Sonar_Scan.angle_min = (float)angle_min*3.145/180.0;

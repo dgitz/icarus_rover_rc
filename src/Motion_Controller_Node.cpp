@@ -20,11 +20,6 @@
 #include "icarus_rover_rc/ICARUS_Probe_Status.h"
 #include "icarus_rover_rc/ICARUS_Probe_Command.h"
 
-int servoWrite(int pin,int value);
-int digitalRead(int pin);
-int pingRead(int pin);
-void test_uart();
-
 using namespace std;
 
 int Extended_Switch = 0;
@@ -41,7 +36,7 @@ int Baud_Rate = -1;
 int Probe_State = PROBE_RETRACTED;
 int Probe_Error = NO_ERROR;
 double dtime = 0.0;
-
+int temp1;
 void ICARUS_Probe_Command_Callback(const icarus_rover_rc::ICARUS_Probe_Command::ConstPtr& msg)  //Process ICARUS Probe Command Message
 {
   //ROS_INFO("I heard: [%s]", msg->data.c_str());
@@ -59,7 +54,7 @@ void Recharge_FSM(double dtime)
         Probe_State = PROBE_EXTENDED; 
         Probe_Error = NO_ERROR;
       }
-      servoWrite(WINCH_MOTOR_PIN, WINCH_MOTOR_FORWARD);
+      //servoWrite(WINCH_MOTOR_PIN, WINCH_MOTOR_FORWARD);
       break;
     case PROBE_MOVING_REVERSE:
       reverse_timer += dtime;
@@ -67,7 +62,7 @@ void Recharge_FSM(double dtime)
       { 
         Probe_State = PROBE_RETRACTED; 
       }
-      servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_REVERSE);
+      //servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_REVERSE);
       break;
     case PROBE_EXTENDED:
       forward_timer = 0.0;
@@ -76,7 +71,7 @@ void Recharge_FSM(double dtime)
       {
         Probe_State = PROBE_MOVING_REVERSE;
       }
-      servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
+      //servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
       break;
     case PROBE_RETRACTED:
       forward_timer = 0.0;
@@ -86,10 +81,10 @@ void Recharge_FSM(double dtime)
         Probe_State = PROBE_MOVING_FORWARD; 
         Probe_Error = NO_ERROR;
       }
-      servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
+      //servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
       break;
     default:
-      servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
+      //servoWrite(WINCH_MOTOR_PIN,WINCH_MOTOR_NEUTRAL);
       break;
   }
   if (forward_timer > FORWARD_TIME_LIMIT){ Probe_Error = EXTENSION_ERROR; }
@@ -105,10 +100,9 @@ int main(int argc, char **argv)
   nh.getParam("baudrate",Baud_Rate);
   int mc_device;
   struct termios oldtio,newtio;
-	char buf[255];
-  int res;
+	int res;
   
-  mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
+  mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY );
 
   if (mc_device  == -1)
   {
@@ -116,31 +110,72 @@ int main(int argc, char **argv)
   }
   else
   {
-    
-    INITIALIZED = 1;
-    tcgetattr(mc_device,&oldtio);
-	  bzero(&newtio, sizeof(newtio));
-	  newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-    //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
-	  newtio.c_iflag = IGNPAR;
-	  newtio.c_oflag = 0;
-	  newtio.c_lflag = 0;
-	  newtio.c_cc[VTIME]    = 0;
-	  newtio.c_cc[VMIN]     = 1;
+    if(1)
+    {
+      INITIALIZED = 1;
+      tcgetattr(mc_device,&oldtio);
+	    bzero(&newtio, sizeof(newtio));
+	    newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+      //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
+	    newtio.c_iflag = IGNPAR;
+	    newtio.c_oflag = 0;
+	    newtio.c_lflag = 0;
+	    newtio.c_cc[VTIME]    = 1;
+	    newtio.c_cc[VMIN]     = 5;
+                  // 0.5 seconds read timeout
 
-	  tcflush(mc_device, TCIFLUSH);
-	  tcsetattr(mc_device,TCSANOW,&newtio);
-  }
+
+	    tcflush(mc_device, TCIFLUSH);
+	    tcsetattr(mc_device,TCSANOW,&newtio);
+    }
+    else
+    {
+struct termios tty;
+struct termios tty_old;
+memset (&tty, 0, sizeof tty);
+
+/* Error Handling */
+if ( tcgetattr ( mc_device, &tty ) != 0 ) {
+   std::cout << "Error " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
+}
+
+/* Save old tty parameters */
+tty_old = tty;
+
+/* Set Baud Rate */
+cfsetospeed (&tty, (speed_t)B9600);
+cfsetispeed (&tty, (speed_t)B9600);
+
+/* Setting other Port Stuff */
+tty.c_cflag     &=  ~PARENB;            // Make 8n1
+tty.c_cflag     &=  ~CSTOPB;
+tty.c_cflag     &=  ~CSIZE;
+tty.c_cflag     |=  CS8;
+
+tty.c_cflag     &=  ~CRTSCTS;           // no flow control
+tty.c_cc[VMIN]   =  1;                  // read doesn't block
+tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
+tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
+
+/* Make raw */
+cfmakeraw(&tty);
+
+/* Flush Port, then applies attributes */
+tcflush( mc_device, TCIFLUSH );
+if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
+   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
+}}
+}  
 
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
   ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
-  ros::Rate loop_rate(1000);
+  ros::Rate loop_rate(100);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
   sensor_msgs::LaserScan Sonar_Scan;
 	//LaserScan Sonar_Scan;
-  
+  temp1 = 1;
 	while( ros::ok() && INITIALIZED)
 	{
     
@@ -151,14 +186,63 @@ int main(int argc, char **argv)
 	  try
 	  {
 	    int wr;
-      //wr = write(mc_device,"HELLO, WORLD!\r\n",15);
-      res = read(mc_device,buf,255);
-      if(res > 0) 
-		  {
-        printf("%s\r\n",buf);
-      }
+      temp1++;
+      if (temp1 > 256) { temp1 = 0; }
+      stringstream ss;
+      ss << temp1;
+      string tempstr;
+      tempstr = "$NAV,123," + ss.str() +  "*\r\n";
+      //char cmd[] = "$NAV,123,456*";
+      char cmd[255];
+      memset(cmd,'\0',sizeof cmd);
+      sprintf(cmd,"$NAV,123,%d,*\r\n",temp1);
+      //unsigned char cmd[] = "$NAV,123,456*\r\n";
+      wr = write(mc_device,cmd,sizeof(cmd)-1);//tempstr.c_str(),15);
+      char buf = '\0';
+      char response[255];
+      int spot = 0;
+    
+      memset(response,'\0',sizeof response);
+      //res = read(mc_device,&buf,1);
+      //printf("x%c",buf);
+      
+      do
+      {
+        
+        res = read(mc_device,&buf,1);
+        //printf("%c",buf);
+        sprintf(&response[spot],"%c",buf);
+        spot += res;
+      } while(buf != '*' && res > 0);
+      printf("%s",response);
+      
+     
+/*
+int n = 0,
+    spot = 0;
+char buf = '\0';
+
+
+char response[255];
+memset(response, '\0', sizeof response);
+
+do {
+   n = read( mc_device, &buf, 1 );
+   if (n > 0) { printf("%c",buf); }
+   sprintf( &response[spot], "%c", buf );
+   spot += n;
+} while( buf != '\r' && n > 0);
+if (n < 0) {
+   //std::cout << "Error reading: " << strerror(errno) << std::endl;
+}
+else if (n == 0) {
+    std::cout << "Read nothing!" << std::endl;
+}
+else {
+    std::cout << "Response: " << response << std::endl;
+}*/
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-      if (digitalRead(EXTENDED_SWITCH_PIN)==0)
+      /*if (digitalRead(EXTENDED_SWITCH_PIN)==0)
       {
         Extended_Switch = true;
       }
@@ -173,7 +257,7 @@ int main(int argc, char **argv)
       else
       {
         Retracted_Switch = false;
-      }
+      }*/
 
       //Recharge_FSM(dtime);
       Probe_Status.header.stamp = ros::Time::now();
@@ -197,16 +281,4 @@ int main(int argc, char **argv)
   }
   close(mc_device);
   
-}
-int servoWrite(int pin,int value)
-{
-  return 0;
-}
-int digitalRead(int pin)
-{
-  return -1;
-}
-int pingRead(int pin)
-{
-  return 0;
 }
