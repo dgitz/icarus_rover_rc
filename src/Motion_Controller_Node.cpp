@@ -2,7 +2,7 @@
 #include <ros/ros.h>
 //Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
 #include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/Joy.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -30,17 +30,39 @@ int Recharge_Command = RECHARGE_WAIT;
 double forward_timer = 0.0;
 double reverse_timer = 0.0;
 
- 
+//Communication Variables
+int token_index = 0;
 string MC_Device = "";
 int Baud_Rate = -1;
+int in_message_started = 0;
+int in_message_completed = 0;
+
+//Position Variables
+double Pose_X;
+double Pose_Y;
+double Heading;
+
+//Motion Variables
+float Steer_Command;
+float Drive_Command;
+
+//Other Variables
 int Probe_State = PROBE_RETRACTED;
 int Probe_Error = NO_ERROR;
 double dtime = 0.0;
 int temp1;
+
+
 void ICARUS_Probe_Command_Callback(const icarus_rover_rc::ICARUS_Probe_Command::ConstPtr& msg)  //Process ICARUS Probe Command Message
 {
   //ROS_INFO("I heard: [%s]", msg->data.c_str());
   Recharge_Command = 0;//msg.Charge_Command;
+  
+}
+void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
+{
+  Steer_Command = joy->axes[0];
+  Drive_Command = joy->axes[1];
   
 }
 void Recharge_FSM(double dtime)
@@ -169,12 +191,11 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
 
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
-  ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
+  ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
   ros::Rate loop_rate(100);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
-  sensor_msgs::LaserScan Sonar_Scan;
-	//LaserScan Sonar_Scan;
+  
   temp1 = 0;
 	while( ros::ok() && INITIALIZED)
 	{
@@ -191,7 +212,8 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
       
       char cmd[255];
       memset(cmd,'\0',sizeof cmd);
-      sprintf(cmd,"$NAV,%d,%d,*\r\n",temp1,180-temp1);
+      sprintf(cmd,"$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);
+      printf("%s",cmd);
       wr = write(mc_device,cmd,sizeof(cmd)-1);
       char buf = '\0';
       char response[255];
@@ -205,12 +227,34 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
       {
         
         res = read(mc_device,&buf,1);
-        sprintf(&response[spot],"%c",buf);
-        spot += res;
+        if (buf == '$') 
+        {
+          in_message_started = 1;
+          in_message_completed = 0;
+        }
+        if(in_message_started == 1)
+        {
+          sprintf(&response[spot],"%c",buf);
+          spot += res;
+        }
       } while(buf != '*' && res > 0);
-      printf("%s",response);
-      
-     
+      in_message_started = 0;
+      in_message_completed = 1;
+      string in_message(response);
+      if (in_message.compare(0,4,"$POS") == 0)
+      {
+        istringstream ss(in_message);
+        string token;
+        token_index = 0;
+        while(getline(ss,token,',')) {
+          std::string::size_type sz;
+          if(token_index == 1) { Pose_X = atof(token.c_str()); }
+          if(token_index == 2) { Pose_Y = atof(token.c_str()); }
+          if(token_index == 3) { Heading = atof(token.c_str()); }
+          token_index++;
+        }
+        //cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
+      }
 /*
 int n = 0,
     spot = 0;
@@ -261,10 +305,7 @@ else {
       Probe_Status.Retracted_Switch = Retracted_Switch;  
       Probe_Status.Probe_Error = Probe_Error;
 
-      Sonar_Scan.header.stamp = ros::Time::now();
-            
-      
-      Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
+    
 	    Pub_ICARUS_Probe_Status.publish(Probe_Status);    
 	  }
 	  catch(const std::exception& ex)
