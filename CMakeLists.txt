@@ -55,6 +55,7 @@ add_message_files(
    ICARUS_Target_Status.msg
    ICARUS_Probe_Status.msg
    ICARUS_Probe_Command.msg
+   ICARUS_Diagnostic.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -118,6 +119,7 @@ add_executable(tune_targeting src/tune_targeting.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
+add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
 #add_executable(Evolution_Node src/Evolution_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -158,6 +160,10 @@ target_link_libraries(Motion_Controller_Node
 	${OpenCV_LIBRARIES} 
 )		
 target_link_libraries(Sonic_Controller_Node
+  ${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES} 
+)
+target_link_libraries(Diagnostic_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
 )

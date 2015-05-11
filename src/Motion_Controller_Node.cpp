@@ -19,6 +19,7 @@
 #include "icarus_rover_rc/Definitions.h"
 #include "icarus_rover_rc/ICARUS_Probe_Status.h"
 #include "icarus_rover_rc/ICARUS_Probe_Command.h"
+#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 
 using namespace std;
 
@@ -191,10 +192,16 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
 
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
+  ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostics",1000);
   ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
   ros::Rate loop_rate(100);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
+  ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  ICARUS_Diagnostic.header.frame_id = "ICARUS_Motion_Controller_Diagnostic";
+  ICARUS_Diagnostic.System = ROVER;
+  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+  ICARUS_Diagnostic.Component = MOTION_CONTROLLER_NODE;
   
   temp1 = 0;
 	while( ros::ok() && INITIALIZED)
@@ -213,7 +220,7 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
       char cmd[255];
       memset(cmd,'\0',sizeof cmd);
       sprintf(cmd,"$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);
-      printf("%s",cmd);
+      //printf();
       wr = write(mc_device,cmd,sizeof(cmd)-1);
       char buf = '\0';
       char response[255];
@@ -254,6 +261,14 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
           token_index++;
         }
         //cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
+      }
+      else
+      {
+        ICARUS_Diagnostic.header.stamp = ros::Time::now();
+        ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
+        ICARUS_Diagnostic.Severity = CAUTION;
+        ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+        Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic); 
       }
 /*
 int n = 0,
@@ -306,14 +321,32 @@ else {
       Probe_Status.Probe_Error = Probe_Error;
 
     
-	    Pub_ICARUS_Probe_Status.publish(Probe_Status);    
+	    Pub_ICARUS_Probe_Status.publish(Probe_Status);  
+
+      //ICARUS Diagnostics Publisher
+      ICARUS_Diagnostic.header.stamp = ros::Time::now();
+      Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	  }
 	  catch(const std::exception& ex)
 	  {
 	    ROS_INFO("ERROR:%s",ex.what());
       close(mc_device);
+      
+      //ICARUS Diagnostics Publisher
+      ICARUS_Diagnostic.header.stamp = ros::Time::now();
+      ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+      ICARUS_Diagnostic.Severity = EMERGENCY;
+      ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+      ICARUS_Diagnostic.Description = ex.what();
+      Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	  }
   }
   close(mc_device);
+  ICARUS_Diagnostic.header.stamp = ros::Time::now();
+  ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+  ICARUS_Diagnostic.Severity = SEVERE;
+  ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+  ICARUS_Diagnostic.Description = "Node Closed.";
+  Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
   
 }
