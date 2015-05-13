@@ -17,8 +17,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
-#include "icarus_rover_rc/ICARUS_Probe_Status.h"
-#include "icarus_rover_rc/ICARUS_Probe_Command.h"
+
 
 #define LINE1 254
 #define BACKLIGHT_ON 157

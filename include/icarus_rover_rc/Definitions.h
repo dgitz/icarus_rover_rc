@@ -22,6 +22,7 @@
 #define SONIC_CONTROLLER_NODE 4
 #define EVOLUTION_NODE 5
 #define TARGETING_NODE 6
+#define MAPPING_NODE 7
 
 //Field 4: Diagnostic Type
 #define NO_ERROR 0

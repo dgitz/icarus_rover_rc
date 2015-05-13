@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
+  
   #usb_cam
   message_generation
   tf
@@ -72,7 +73,7 @@ add_message_files(
 #   Action2.action
 # )
 
-#n# Generate added messages and services with any dependencies listed here
+## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
    std_msgs
@@ -92,7 +93,7 @@ generate_messages(
 catkin_package(
    INCLUDE_DIRS include
   LIBRARIES
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs
 #  DEPENDS system_lib
 )
 
@@ -114,12 +115,13 @@ include_directories(include
 
 ## Declare a cpp executable
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
-add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
-add_executable(tune_targeting src/tune_targeting.cpp)
+#add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
+#add_executable(tune_targeting src/tune_targeting.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
 add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
+add_executable(Mapping_Node src/Mapping_Node.cpp)
 #add_executable(Evolution_Node src/Evolution_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -136,17 +138,17 @@ add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
 #	${PROJECT_SOURCE_DIR}
 #)
 
-target_link_libraries(pick_targets_from_train_images 
-	${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES}
-	#${PROJECT_SOURCE_DIR}
-)
+#target_link_libraries(pick_targets_from_train_images 
+#	${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES}
+#	#${PROJECT_SOURCE_DIR}
+#)
 
-target_link_libraries(tune_targeting
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
+#target_link_libraries(tune_targeting
+#  ${catkin_LIBRARIES}
+#  ${OpenCV_LIBRARIES}
   #${PROJECT_SOURCE_DIR}
-)
+#)
 
 target_link_libraries(Targeting_Node
   
@@ -166,6 +168,10 @@ target_link_libraries(Sonic_Controller_Node
 target_link_libraries(Diagnostic_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
+)
+target_link_libraries(Mapping_Node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}
