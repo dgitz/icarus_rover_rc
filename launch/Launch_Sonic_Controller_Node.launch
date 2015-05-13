@@ -1,7 +1,7 @@
 <!--xml-->
 <launch>
   <param name="DEBUG_MODE" value = "0"/>
-  <param name="sc_device" value="/dev/ttyUSB0" />
+  <param name="sc_device" value="/dev/ttyUSB1" />
   <param name="baudrate" value="115200"/>
   <param name="rate" value="50"/>
   <param name="ping_sensor_count" value="3"/>

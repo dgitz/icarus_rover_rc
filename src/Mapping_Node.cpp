@@ -99,7 +99,7 @@ int main(int argc, char **argv)
             //ICARUS Diagnostics Publisher
             ICARUS_Diagnostic.header.stamp = ros::Time::now();
             ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-            ICARUS_Diagnostic.Severity = EMERGENCY;
+            ICARUS_Diagnostic.Level = FATAL;
             ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
             ICARUS_Diagnostic.Description = ex.what();
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
@@ -107,7 +107,7 @@ int main(int argc, char **argv)
   }
   ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-  ICARUS_Diagnostic.Severity = SEVERE;
+  ICARUS_Diagnostic.Level = SEVERE;
   ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
   ICARUS_Diagnostic.Description = "Node Closed.";
   Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);

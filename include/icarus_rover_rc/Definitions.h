@@ -12,7 +12,7 @@
 #define ENTIRE_SYSTEM 0
 #define ROBOT_CONTROLLER 1
 #define MOTION_CONTROLLER 2
-#define SONIC_CONTROLLER
+#define SONIC_CONTROLLER 3
 
 //Field 3: Component
 #define ENTIRE_SUBSYSTEM 0
@@ -34,14 +34,14 @@
 #define DATA_STORAGE 6
 #define GENERAL_ERROR 9
 
-//Field 5: Severity
+//Field 5: Level
 //#define NO_ERROR 0  Already defined above, just leaving here for completeness.
 #define DEBUG 1
 #define INFORMATION 2
 #define MINIMAL 3
 #define CAUTION 4
 #define SEVERE 5
-#define EMERGENCY 6
+#define FATAL 6
 
 //Field 6: Diagnostic_Message
 //#define NO_ERROR 0  Already defined above, just leaving here for completeness.

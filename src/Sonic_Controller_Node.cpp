@@ -17,7 +17,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
-
+#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 
 using namespace std;
 
@@ -86,9 +86,15 @@ int main(int argc, char **argv)
   }
 
   ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
+  ros::Publisher Pub_ICARUS_Sonic_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Sonic_Controller_Diagnostic",1000);
+  icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
   ros::Rate loop_rate(sonic_node_rate);
 	std::clock_t    start;
   sensor_msgs::LaserScan Sonar_Scan;
+  ICARUS_Diagnostic.header.frame_id = "ICARUS_Sonic_Controller_Diagnostic";
+  ICARUS_Diagnostic.System = ROVER;
+  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+  ICARUS_Diagnostic.Component = SONIC_CONTROLLER_NODE;
 	//LaserScan Sonar_Scan;
   start = std::clock();
 	while( ros::ok() && INITIALIZED)
@@ -146,7 +152,7 @@ int main(int argc, char **argv)
         string delimiter = ",";
         int pos = 0;
         string token;
-        if (DEBUG_MODE > 1) { cout << message << endl; }
+        
         string message_type = tempstr.substr(0,tempstr.find(delimiter));
         ping_index = 0;
         if( message_type.compare("$SON") ==0)
@@ -156,7 +162,7 @@ int main(int argc, char **argv)
           {
             
             token = tempstr.substr(0,pos);
-            if (DEBUG_MODE > 2) {cout << pos << "." << token; }
+            
             if (skipme == 0)
             {
               ping_distances[ping_index++] = atol(token.c_str());
@@ -167,7 +173,7 @@ int main(int argc, char **argv)
           }
            pos = tempstr.find("*");
           token = tempstr.substr(0,pos);
-          if (DEBUG_MODE > 2) { cout << "." << token << endl; }
+          
             ping_distances[ping_index++] = atol(token.c_str());
           
         }
@@ -175,13 +181,7 @@ int main(int argc, char **argv)
         start = std::clock();
   
       }
-      if (DEBUG_MODE > 0) { 
-      cout << "$SON";
-      for(int i = 0; i < ping_sensor_count; i++)
-      {
-        cout << "," << ping_distances[i];
-      }
-      cout << "*" << endl;}
+      
       
       
       
@@ -202,12 +202,22 @@ int main(int argc, char **argv)
       }
      
       Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
+      ICARUS_Diagnostic.header.stamp = ros::Time::now();
+      ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
+      ICARUS_Diagnostic.Level = NO_ERROR;
+      ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+      Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	      
 	  }
 	  catch(const std::exception& ex)
 	  {
 	    ROS_INFO("ERROR:%s",ex.what());
       close(sc_device);
+		ICARUS_Diagnostic.header.stamp = ros::Time::now();
+		ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+		ICARUS_Diagnostic.Level = FATAL;
+		ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+		Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);	
 	  }
   }
   close(sc_device);

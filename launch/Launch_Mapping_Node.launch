@@ -1,9 +1,25 @@
 <!--xml-->
 <launch>
-  <param name="Mode" value="Live"/>
   
-  
-  <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
-   
+  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" output="screen">
+    <param name="sc_device" value="/dev/ttyUSB1"/>
+    <param name="baudrate" value="115200"/>
+    <param name="rate" value="50"/>
+    <param name="ping_sensor_count" value="3"/>
+    <param name="angle_min_deg" value="-30"/>
+    <param name="angle_max_deg" value="30"/>
+    <param name="angle_increment_deg" value="30"/>
+    <param name="range_min_inch" value="6"/>
+    <param name="range_max_inch" value="255"/>
   </node>
+  
+  <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node" output="screen">
+    <param name="Output_Level" value="0"/>
+  </node>
+ 
+  <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
+    <param name="Mode" value="Live"/>
+  
+  </node>
+ 
 </launch>

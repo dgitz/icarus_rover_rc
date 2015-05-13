@@ -3,6 +3,7 @@
 //Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Joy.h>
+#include <geometry_msgs/Pose2D.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -194,10 +195,12 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
   ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostics",1000);
   ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
+  ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
   ros::Rate loop_rate(100);
 	std::clock_t    start;
   ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
   ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  geometry_msgs::Pose2D Rover_Pose;
   ICARUS_Diagnostic.header.frame_id = "ICARUS_Motion_Controller_Diagnostic";
   ICARUS_Diagnostic.System = ROVER;
   ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
@@ -260,13 +263,17 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
           if(token_index == 3) { Heading = atof(token.c_str()); }
           token_index++;
         }
-        //cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
+        cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
+        Rover_Pose.x = Pose_X;
+	Rover_Pose.y = Pose_Y;
+	Rover_Pose.theta = Heading;
+	Pub_ICARUS_Rover_Pose.publish(Rover_Pose);
       }
       else
       {
         ICARUS_Diagnostic.header.stamp = ros::Time::now();
         ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
-        ICARUS_Diagnostic.Severity = CAUTION;
+        ICARUS_Diagnostic.Level = CAUTION;
         ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
         Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic); 
       }
@@ -335,7 +342,7 @@ else {
       //ICARUS Diagnostics Publisher
       ICARUS_Diagnostic.header.stamp = ros::Time::now();
       ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-      ICARUS_Diagnostic.Severity = EMERGENCY;
+      ICARUS_Diagnostic.Level = FATAL;
       ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
       ICARUS_Diagnostic.Description = ex.what();
       Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
@@ -344,7 +351,7 @@ else {
   close(mc_device);
   ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-  ICARUS_Diagnostic.Severity = SEVERE;
+  ICARUS_Diagnostic.Level = SEVERE;
   ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
   ICARUS_Diagnostic.Description = "Node Closed.";
   Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
