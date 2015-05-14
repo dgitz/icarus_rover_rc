@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 {
   int INITIALIZED = 0;
   ros::init(argc, argv, "Motion_Controller");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
   //nh.getParam("target_count",target_count);
   nh.getParam("mc_device",MC_Device);
   nh.getParam("baudrate",Baud_Rate);
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 
   if (mc_device  == -1)
   {
-    ROS_INFO("ERROR: UNABLE TO OPEN SERIAL PORT.");
+    printf("ERROR: UNABLE TO OPEN MOTION CONTROLLER PORT ON %s.",MC_Device.c_str());
   }
   else
   {
@@ -193,7 +193,7 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
 
   ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
-  ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostics",1000);
+  ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
   ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
   ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
   ros::Rate loop_rate(100);
@@ -263,7 +263,12 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
           if(token_index == 3) { Heading = atof(token.c_str()); }
           token_index++;
         }
-        cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
+        ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
+	ICARUS_Diagnostic.Level = DEBUG;
+	ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+	//ICARUS_Diagnostic.Description =  "";
+	
+	//cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl;
         Rover_Pose.x = Pose_X;
 	Rover_Pose.y = Pose_Y;
 	Rover_Pose.theta = Heading;

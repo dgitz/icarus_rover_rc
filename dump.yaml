@@ -1,0 +1,35 @@
+DEBUG_MODE: 0
+Diagnostic_Node: {Output_Level: 0}
+Mapping_Node: {Mode: Live}
+Motion_Controller_Node: {baudrate: 115200, mc_device: /dev/ttyUSB0}
+Sonic_Controller_Node: {angle_increment_deg: 30, angle_max_deg: 30, angle_min_deg: -30,
+  baudrate: 115200, ping_sensor_count: 3, range_max_inch: 255, range_min_inch: 6,
+  rate: 50, sc_device: /dev/ttyUSB1}
+angle_increment_deg: 30
+angle_max_deg: 30
+angle_min_deg: -30
+baudrate: 115200
+mc_device: /dev/ttyUSB0
+ping_sensor_count: 3
+range_max_inch: 255
+range_min_inch: 6
+rate: 50
+rosdistro: 'groovy
+
+  '
+roslaunch:
+  uris: {host_10_0_0_10__33343: 'http://10.0.0.10:33343/', host_10_0_0_10__35664: 'http://10.0.0.10:35664/',
+    host_10_0_0_10__37765: 'http://10.0.0.10:37765/', host_10_0_0_10__39166: 'http://10.0.0.10:39166/',
+    host_10_0_0_10__39261: 'http://10.0.0.10:39261/', host_10_0_0_10__40742: 'http://10.0.0.10:40742/',
+    host_10_0_0_10__41463: 'http://10.0.0.10:41463/', host_10_0_0_10__44951: 'http://10.0.0.10:44951/',
+    host_10_0_0_10__46515: 'http://10.0.0.10:46515/', host_10_0_0_10__49326: 'http://10.0.0.10:49326/',
+    host_10_0_0_10__51522: 'http://10.0.0.10:51522/', host_10_0_0_10__51956: 'http://10.0.0.10:51956/',
+    host_10_0_0_10__52686: 'http://10.0.0.10:52686/', host_10_0_0_10__54599: 'http://10.0.0.10:54599/',
+    host_10_0_0_10__55808: 'http://10.0.0.10:55808/', host_10_0_0_10__56285: 'http://10.0.0.10:56285/',
+    host_10_0_0_10__57637: 'http://10.0.0.10:57637/', host_10_0_0_10__58926: 'http://10.0.0.10:58926/',
+    host_10_0_0_10__59655: 'http://10.0.0.10:59655/', host_10_0_0_10__60834: 'http://10.0.0.10:60834/'}
+rosversion: '1.9.45
+
+  '
+run_id: 23671170-f9c3-11e4-a78a-e84e06124894
+sc_device: /dev/ttyUSB1

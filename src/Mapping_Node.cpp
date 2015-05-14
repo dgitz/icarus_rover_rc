@@ -41,10 +41,14 @@ void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 	cout << "Got a Scan" << endl;
 }
+void test_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg)
+{
+	cout << "Got a Diag." << endl;
+}
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "Mapping");
-  ros::NodeHandle nh;
+  ros::init(argc, argv, "Mapping_Node");
+  ros::NodeHandle nh("~");
   
   nh.getParam("Mode",Mode);
   
@@ -52,24 +56,28 @@ int main(int argc, char **argv)
   ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
   ros::Rate loop_rate(100);
   std::clock_t    start;
+  ros::Publisher Pub_ICARUS_OccupancyGrid;  
   
-  if(Mode.compare("Sim") == 0)
+  ros::Subscriber Sub_Rover_Pose;
+  ros::Subscriber Sub_Sonar_Scan;
+ if(Mode.compare("Sim") == 0)
   {
-    ros::Publisher Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
-    ros::Subscriber Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
+    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
+    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
     cout << Sub_Rover_Pose << endl;
-    ros::Subscriber Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
     cout << "Sim Mode" << endl;
   }
   else if(Mode.compare("Live") == 0)
   {
-    ros::Publisher Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
-    ros::Subscriber Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    ros::Subscriber Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
+    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
+    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
     cout << "Live Mode" << endl;
   }	
-  
+ 
   ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  nav_msgs::OccupancyGrid OccupancyGrid;
   ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
   ICARUS_Diagnostic.System = ROVER;
   ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
@@ -87,7 +95,7 @@ int main(int argc, char **argv)
 	  {
 	    
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-        	
+            Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
              //ICARUS Diagnostics Publisher
             ICARUS_Diagnostic.header.stamp = ros::Time::now();
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);

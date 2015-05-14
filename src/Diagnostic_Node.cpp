@@ -28,7 +28,7 @@ using namespace std;
 int token_index = 0;
 string DIAG_device = "";
 int Baud_Rate = -1;
-int Output_Level = 1;
+int Output_Level = 0;
 
 double dtime = 0.0;
 
@@ -183,15 +183,16 @@ int main(int argc, char **argv)
 {
   int INITIALIZED = 0;
   ros::init(argc, argv, "Diagnostic Node");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
   //nh.getParam("target_count",target_count);
   //nh.getParam("diag_device",DIAG_device);
   //nh.getParam("baudrate",Baud_Rate);
   nh.getParam("Output_Level",Output_Level);
   cout << "Output Level: " <<  Output_Level << endl;
   
-  ros::Subscriber Sub_Diagnostic = nh.subscribe<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000,Diagnostic_Callback);
-  ros::Subscriber Sub_Diagnostic2 = nh.subscribe<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Sonic_Controller_Diagnostic",1000,Diagnostic_Callback);
+  ros::Subscriber Sub_Diagnostic = nh.subscribe<icarus_rover_rc::ICARUS_Diagnostic>("/Mapping_Node/ICARUS_Mapping_Diagnostic",1000,Diagnostic_Callback);
+  ros::Subscriber Sub_Diagnostic2 = nh.subscribe<icarus_rover_rc::ICARUS_Diagnostic>("/Sonic_Controller_Node/ICARUS_Sonic_Controller_Diagnostic",1000,Diagnostic_Callback);
+  ros::Subscriber Sub_Diagnostic3 = nh.subscribe<icarus_rover_rc::ICARUS_Diagnostic>("/Motion_Controller_Node/ICARUS_Motion_Controller_Diagnostic",1000,Diagnostic_Callback);
   //ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
   //ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
   ros::Rate loop_rate(100);

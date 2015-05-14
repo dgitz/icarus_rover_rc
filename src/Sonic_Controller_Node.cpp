@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 {
   int INITIALIZED = 0;
   ros::init(argc, argv, "Sonic_Controller");
-  ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
   //nh.getParam("target_count",target_count);
   nh.getParam("sc_device",SC_Device);
   nh.getParam("baudrate",Baud_Rate);
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
   
   if (sc_device  == -1)
   {
-    ROS_INFO("ERROR: UNABLE TO OPEN SONIC CONTROLLER PORT.");
+    printf("ERROR: UNABLE TO OPEN SONIC CONTROLLER PORT ON %s.",SC_Device.c_str());
   }
   else
   {
