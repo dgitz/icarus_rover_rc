@@ -39,20 +39,40 @@ double Pose_Theta;
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
 	tf::TransformBroadcaster odom_broadcaster;
+	/*
 	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(msg->theta);
 	geometry_msgs::TransformStamped odom_trans;
 	odom_trans.header.stamp = ros::Time::now();
-	odom_trans.header.frame_id = "odom";
-	odom_trans.child_frame_id = "base_link";
+	odom_trans.header.frame_id = "/base_link";
+	odom_trans.child_frame_id = "/odom";
 	odom_trans.transform.translation.x = msg->x;
 	odom_trans.transform.translation.y = msg->y;
 	odom_trans.transform.translation.z = 0.0;
 	odom_trans.transform.rotation = odom_quat;
-        odom_broadcaster.sendTransform(odom_trans);
+	*/
+	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(msg->theta);
+	odom_broadcaster.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0,0,0,1),tf::Vector3(msg->x,msg->y,0.0)),ros::Time::now(),"/base_link","odom"));
+        //odom_broadcaster.sendTransform(odom_trans);
 	Pose_X = msg->x;
 	Pose_Y = msg->y;
 	Pose_Theta = msg->theta;
 	
+	/*
+	tf::TransformBroadcaster scan_broadcaster;
+	geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
+	geometry_msgs::TransformStamped scan_trans;
+	scan_trans.header.stamp = ros::Time::now();
+	scan_trans.header.frame_id = "/scan";
+	scan_trans.child_frame_id = "/base_link";
+	scan_trans.transform.translation.x = 0.0;
+	scan_trans.transform.translation.y = 0.0;
+	scan_trans.transform.translation.z = -.0;
+	scan_trans.transform.rotation = scan_quat;
+	scan_broadcaster.sendTransform(scan_trans);
+	*/
+	tf::TransformBroadcaster scan_broadcaster;
+	scan_broadcaster.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0,0,0,1),tf::Vector3(0.0,0.0,0.2)),
+		ros::Time::now(),"/base_link","/scan"));
 
 	printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
@@ -123,7 +143,7 @@ int main(int argc, char **argv)
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
 	    Rover_Odometry.header.stamp = ros::Time::now();
-	    Rover_Odometry.header.frame_id = "odom";
+	    Rover_Odometry.header.frame_id = "/odom";
 	    Rover_Odometry.pose.pose.position.x = Pose_X;
 	    Rover_Odometry.pose.pose.position.y = Pose_Y;
 	    Rover_Odometry.pose.pose.position.z = 0.0;
