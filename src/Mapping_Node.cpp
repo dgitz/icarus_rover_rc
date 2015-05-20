@@ -33,12 +33,12 @@ string Mode = "";
 
 //Program Variables
 double dtime = 0.0;
-tf::TransformBroadcaster odom_broadcaster;
 double Pose_X;
 double Pose_Y;
 double Pose_Theta;
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
+	tf::TransformBroadcaster odom_broadcaster;
 	geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(msg->theta);
 	geometry_msgs::TransformStamped odom_trans;
 	odom_trans.header.stamp = ros::Time::now();
@@ -122,6 +122,13 @@ int main(int argc, char **argv)
             ICARUS_Diagnostic.header.stamp = ros::Time::now();
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
+	    Rover_Odometry.header.stamp = ros::Time::now();
+	    Rover_Odometry.header.frame_id = "odom";
+	    Rover_Odometry.pose.pose.position.x = Pose_X;
+	    Rover_Odometry.pose.pose.position.y = Pose_Y;
+	    Rover_Odometry.pose.pose.position.z = 0.0;
+	    geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(Pose_Theta);
+	    Rover_Odometry.pose.pose.orientation = odom_quat;
 	    Pub_ICARUS_Rover_Odom.publish(Rover_Odometry);
 	  }
 	  catch(const std::exception& ex)
