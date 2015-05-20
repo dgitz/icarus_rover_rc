@@ -2,7 +2,7 @@
 <launch>
   
   <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
-    <param name="Mode" type="str" value="Live"/>
+    <param name="Mode" type="str" value="Sim"/>
   
   </node>
  
