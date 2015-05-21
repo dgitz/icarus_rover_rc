@@ -117,6 +117,7 @@ include_directories(include
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
 #add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 #add_executable(tune_targeting src/tune_targeting.cpp)
+add_executable(tf_broadcaster src/tf_broadcaster.cpp)
 add_executable(Targeting_Node src/Targeting_Node.cpp)
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
@@ -149,6 +150,7 @@ add_executable(Mapping_Node src/Mapping_Node.cpp)
 #  ${OpenCV_LIBRARIES}
   #${PROJECT_SOURCE_DIR}
 #)
+target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
 
 target_link_libraries(Targeting_Node
   
