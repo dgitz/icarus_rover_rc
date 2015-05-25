@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
 #include "icarus_rover_rc/ICARUS_Diagnostic.h"
+//#include "icarus_rover_rc/Mapping_Node.h"
 
 using namespace std;
 
@@ -45,7 +46,7 @@ void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 	tf::Quaternion q;
 	q.setRPY(0.0,0.0,msg->theta);
 	transform.setRotation(q);
-	odom_br.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","odom"));
+	odom_br.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"odom","base_link"));
 	Pose_X = msg->x;
 	Pose_Y = msg->y;
 	Pose_Theta = msg->theta;
@@ -143,7 +144,8 @@ int main(int argc, char **argv)
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
 	    Rover_Odometry.header.stamp = ros::Time::now();
-	    Rover_Odometry.header.frame_id = "/odom";
+	    Rover_Odometry.header.frame_id = "odom";
+	    Rover_Odometry.child_frame_id = "base_link";
 	    Rover_Odometry.pose.pose.position.x = Pose_X;
 	    Rover_Odometry.pose.pose.position.y = Pose_Y;
 	    Rover_Odometry.pose.pose.position.z = 0.0;
