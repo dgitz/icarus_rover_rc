@@ -1,8 +1,8 @@
 <!--xml-->
 <launch>
   <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" output="screen">
-
     <param name="sc_device" value="/dev/ttyUSB1" />
+    <param name="DEBUG_MODE" value="1"/>
     <param name="baudrate" value="115200"/>
     <param name="rate" value="50"/>
     <param name="ping_sensor_count" value="3"/>

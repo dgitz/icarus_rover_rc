@@ -5,6 +5,7 @@
     <param name="baudrate" value = "115200"/>
   </node> 
   <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" output="screen">
+    <param name="DEBUG_MODE" value="1"/>
     <param name="sc_device" value="/dev/ttyUSB1"/>
     <param name="baudrate" value="115200"/>
     <param name="rate" value="50"/>
@@ -22,7 +23,7 @@
   </node>
  -->
   <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
-    <param name="Mode" value="Sim"/>
+    <param name="Mode" value="Live"/>
   
   </node>
  

@@ -94,4 +94,17 @@
 #define TARGET_NONE 1
 #define TARGET_TRACKING 2
 
+
+//Armed State Definitions
+#define ARMED 1
+#define DISARMED 0
 #endif
+
+//Actuator Definitions
+#define STEER_SERVO_CENTER 100
+#define STEER_SERVO_MAXLEFT 130
+#define STEER_SERVO_MAXRIGHT 65
+#define DRIVE_MOTOR_NEUTRAL 92
+#define DRIVE_MOTOR_FULLFORWARD 105
+#define DRIVE_MOTOR_FULLREVERSE 80
+

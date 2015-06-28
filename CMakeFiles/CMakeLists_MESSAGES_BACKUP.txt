@@ -110,76 +110,18 @@ include_directories(include
   ${OpenCV_INCLUDE_DIRS}
 )
 
-## Declare a cpp library
- #add_library(Evolution src/Evolution.cpp)
 
-## Declare a cpp executable
-#add_executable(acquire_train_images src/acquire_train_images.cpp)
-#add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
-#add_executable(tune_targeting src/tune_targeting.cpp)
-add_executable(tf_broadcaster src/tf_broadcaster.cpp)
-add_executable(Targeting_Node src/Targeting_Node.cpp)
-add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
-add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
-add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
-add_executable(Mapping_Node src/Mapping_Node.cpp)
-#add_executable(Evolution_Node src/Evolution_Node.cpp)
+
+
+
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(icarus_rover_rc_node icarus_rover_rc_generate_messages_cpp)
+#add_dependencies(icarus_rover_rc_node icarus_rover_rc_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(icarus_rover_rc_node
-#   ${catkin_LIBRARIES}
-# )
-#target_link_libraries(acquire_train_images 
-#	${catkin_LIBRARIES}
-#	${OpenCV_LIBRARIES}
-#	${PROJECT_SOURCE_DIR}
-#)
-
-#target_link_libraries(pick_targets_from_train_images 
-#	${catkin_LIBRARIES}
-#	${OpenCV_LIBRARIES}
-#	#${PROJECT_SOURCE_DIR}
-#)
-
-#target_link_libraries(tune_targeting
+#target_link_libraries(icarus_rover_rc_node
 #  ${catkin_LIBRARIES}
-#  ${OpenCV_LIBRARIES}
-  #${PROJECT_SOURCE_DIR}
-#)
-target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
-
-target_link_libraries(Targeting_Node
-  
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES}
-	#${PROJECT_SOURCE_DIR}
-)		
-
-target_link_libraries(Motion_Controller_Node
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-)		
-target_link_libraries(Sonic_Controller_Node
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-)
-target_link_libraries(Diagnostic_Node
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-)
-target_link_libraries(Mapping_Node
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-#target_link_libraries(Evolution_Node
-#  ${catkin_LIBRARIES}
-#  ${OpenCV_LIBRARIES}
-#  ${roscpp_LIBRARIES}
-#  Evolution
 #)
 #############
 ## Install ##

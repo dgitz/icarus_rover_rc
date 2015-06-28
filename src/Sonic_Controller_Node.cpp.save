@@ -33,20 +33,14 @@ int angle_min,angle_max,range_min,range_max,angle_increment;
 int main(int argc, char **argv)
 {
   int INITIALIZED = 0;
-  printf("Here");
   ros::init(argc, argv, "Sonic_Controller");
   ros::NodeHandle nh("~");
   //nh.getParam("target_count",target_count);
   nh.getParam("sc_device",SC_Device);
-  printf("Got sc_device: %s",SC_Device.c_str());
   nh.getParam("baudrate",Baud_Rate);
-  printf("Got baudrate: %d",Baud_Rate);
   nh.getParam("rate",sonic_node_rate);
-  printf("Got Rate: %d",sonic_node_rate);
   nh.getParam("ping_sensor_count",ping_sensor_count);
-  printf("Got Ping Sonar Count: %d",ping_sensor_count);
   nh.getParam("DEBUG_MODE",DEBUG_MODE);
-  printf("Got Debug Mode: %d",DEBUG_MODE);
   nh.getParam("angle_min_deg",angle_min);
   nh.getParam("angle_max_deg",angle_max);
   nh.getParam("angle_increment_deg",angle_increment);
@@ -129,7 +123,6 @@ int main(int argc, char **argv)
         string tempstr(response);
         for(int i = 0; i <tempstr.size();i++)
         {
-	if (DEBUG_MODE == 1){ printf("%s",tempstr.c_str()); }
           if (tempstr[i] == '$')
           {
             message_index = 0;
@@ -154,8 +147,7 @@ int main(int argc, char **argv)
       if (message_complete == 1) 
       {  
         message_complete = 0;
-	if (DEBUG_MODE == 2) {    cout << message << endl;}
-	 message_complete = 0;
+	if (DEBUG_MODE == 1) {        cout << message << endl; message_complete = 0;
         string tempstr(message);
         string delimiter = ",";
         int pos = 0;
@@ -194,7 +186,7 @@ int main(int argc, char **argv)
       
       
       Sonar_Scan.header.stamp = ros::Time::now();
-      Sonar_Scan.header.frame_id = "laser";
+      Sonar_Scan.header.frame_id = "sonar_frame";
       Sonar_Scan.angle_min = (float)angle_min*3.145/180.0;
       Sonar_Scan.angle_max = (float)angle_max*3.145/180.0;
       Sonar_Scan.angle_increment = angle_increment*3.145/180.0;
@@ -206,8 +198,7 @@ int main(int argc, char **argv)
       {  
         if (ping_distances[i] < range_min) { ping_distances[i] = range_min; }
         else if (ping_distances[i] > range_max) { ping_distances[i] = range_max; }
-        Sonar_Scan.ranges[i] = ping_distances[i];
-	Sonar_Scan.intensities[i] = ping_distances[i]+100; 
+        Sonar_Scan.ranges[i] = ping_distances[i]; 
       }
      
       Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
