@@ -122,6 +122,7 @@ add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
 add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
 add_executable(Mapping_Node src/Mapping_Node.cpp)
+add_executable(Pose_Node src/Pose_Node.cpp)
 #add_executable(Evolution_Node src/Evolution_Node.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -171,6 +172,10 @@ target_link_libraries(Diagnostic_Node
 	${OpenCV_LIBRARIES} 
 )
 target_link_libraries(Mapping_Node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+target_link_libraries(Pose_Node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )

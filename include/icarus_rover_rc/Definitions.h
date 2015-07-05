@@ -23,6 +23,7 @@
 #define EVOLUTION_NODE 5
 #define TARGETING_NODE 6
 #define MAPPING_NODE 7
+#define POSE_NODE 8
 
 //Field 4: Diagnostic Type
 #define NO_ERROR 0

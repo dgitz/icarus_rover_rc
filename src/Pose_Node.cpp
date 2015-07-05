@@ -27,6 +27,10 @@
 using namespace std;
 
 
+#define MOUSEID "/dev/input/event0"
+#define MOUSEID1 "/dev/input/event1"
+//#define MOUSEID2 "/dev/input/event2"
+#define MOUSEID2 "/dev/input/event1"
 //Communication Variables
 
 //Operation Variables
@@ -77,14 +81,6 @@ void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 
 	printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
-void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
-{
-	cout << "Got a Scan" << endl;
-}
-void test_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg)
-{
-	cout << "Got a Diag." << endl;
-}
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "Mapping_Node");
@@ -93,39 +89,29 @@ int main(int argc, char **argv)
   nh.getParam("Mode",Mode);
   
     
-  ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
+  ros::Publisher Pub_ICARUS_Pose_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Pose_Diagnostic",1000);
   ros::Rate loop_rate(100);
   std::clock_t    start;
-  ros::Publisher Pub_ICARUS_OccupancyGrid;  
   ros::Publisher Pub_ICARUS_Rover_Odom;    
-  ros::Subscriber Sub_Rover_Pose;
-  ros::Subscriber Sub_Sonar_Scan;
 
- if(Mode.compare("Sim") == 0)
-  {
-    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
-    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    cout << Sub_Rover_Pose << endl;
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-    Pub_ICARUS_Rover_Odom = nh.advertise<nav_msgs::Odometry>("ICARUS_SimRover_Odom",1000);
-    cout << "Sim Mode" << endl;
-  }
-  else if(Mode.compare("Live") == 0)
-  {
-    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
-    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-    Pub_ICARUS_Rover_Odom = nh.advertise<nav_msgs::Odometry>("ICARUS_Rover_Odom",1000);
-    cout << "Live Mode" << endl;
-  }	
- 
-  ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-  nav_msgs::OccupancyGrid OccupancyGrid;
-  ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
+
+   ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  ICARUS_Diagnostic.header.frame_id = "ICARUS_Pose_Diagnostic";
   ICARUS_Diagnostic.System = ROVER;
   ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  ICARUS_Diagnostic.Component = MAPPING_NODE;
-
+  ICARUS_Diagnostic.Component = POSE_NODE;
+  
+	int fd;
+	struct input_event ie;
+	ssize_t n;
+	if((fd = open(MOUSEID2,O_RDONLY)) == -1)
+	{
+		cout << "Couldn't Open Mouse: " << fd << endl;
+	}
+	int x = 0;
+	int y = 0;
+	int dx = 0;
+	int dy = 0;
 	while(ros::ok())
 	{
     
@@ -134,15 +120,58 @@ int main(int argc, char **argv)
 		loop_rate.sleep();
 		
 		
-	
+		n = read(fd,&ie,sizeof ie);
+		if(n>0)
+		/*{
+			unsigned char *ptr = (unsigned char*)&ie;
+			//x = (char)ptr[4]; y = (char)ptr[5];
+			//printf("x: %d y: %d\r\n",x,y);
+			for(int i = 0; i < sizeof(ie);i++)
+			{
+				printf("%02X ",*ptr++);
+			}
+			printf("\n");*/
+
+		{
+			//cout << "Type: " << ie.type << " Code: " << ie.code << " Value: " << ie.value << endl; 
+			if(ie.type == 0x02)
+			{
+				if(ie.code == 0x00)
+				{	
+					x+=ie.value; dx = ie.value;
+				}
+				else
+				{
+					dx = 0;
+				}
+				if(ie.code == 0x01)
+				{   
+					y+=ie.value; 
+					dy = ie.value;
+				}
+				else
+				{
+					dy = 0;
+				}
+				
+				
+			}
+			else
+			{
+				dx = 0;
+				dy = 0;
+			}
+			
+			
+		}
+		cout << "dX: " << dx << " dY: " << dy << endl;
+		
 	  try
 	  {
 	    
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-            Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
-             //ICARUS Diagnostics Publisher
             ICARUS_Diagnostic.header.stamp = ros::Time::now();
-            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+            Pub_ICARUS_Pose_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
 	    Rover_Odometry.header.stamp = ros::Time::now();
 	    Rover_Odometry.header.frame_id = "/odom";
@@ -166,11 +195,6 @@ int main(int argc, char **argv)
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
 	  }
   }
-  ICARUS_Diagnostic.header.stamp = ros::Time::now();
-  ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-  ICARUS_Diagnostic.Level = SEVERE;
-  ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-  ICARUS_Diagnostic.Description = "Node Closed.";
-  Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+
   
 }

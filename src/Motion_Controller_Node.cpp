@@ -4,6 +4,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Joy.h>
 #include <geometry_msgs/Pose2D.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -48,6 +49,8 @@ double Heading;
 int Steer_Command;
 int Drive_Command;
 int armed_state;
+
+
 
 //Other Variables
 int Probe_State = PROBE_RETRACTED;
@@ -119,98 +122,62 @@ void Recharge_FSM(double dtime)
 }
 int main(int argc, char **argv)
 {
-  int INITIALIZED = 0;
-  ros::init(argc, argv, "Motion_Controller");
-  ros::NodeHandle nh("~");
-  //nh.getParam("target_count",target_count);
-  nh.getParam("mc_device",MC_Device);
-  nh.getParam("baudrate",Baud_Rate);
-  nh.getParam("DEBUG_MODE",DEBUG_MODE);
-  int mc_device;
-  struct termios oldtio,newtio;
+	int INITIALIZED = 0;
+	ros::init(argc, argv, "Motion_Controller");
+	ros::NodeHandle nh("~");
+	//nh.getParam("target_count",target_count);
+	nh.getParam("mc_device",MC_Device);
+	nh.getParam("baudrate",Baud_Rate);
+	nh.getParam("DEBUG_MODE",DEBUG_MODE);
+	int mc_device;
+	struct termios oldtio,newtio;
 	int res;
   
-  mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY );
+	mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY );
 
-  if (mc_device  == -1)
-  {
-    printf("ERROR: UNABLE TO OPEN MOTION CONTROLLER PORT ON %s.",MC_Device.c_str());
-  }
-  else
-  {
-    if(1)
-    {
-      INITIALIZED = 1;
-      tcgetattr(mc_device,&oldtio);
-	    bzero(&newtio, sizeof(newtio));
-	    newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-      //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
-	    newtio.c_iflag = IGNPAR;
-	    newtio.c_oflag = 0;
-	    newtio.c_lflag = 0;
-	    newtio.c_cc[VTIME]    = 1;
-	    newtio.c_cc[VMIN]     = 5;
-                  // 0.5 seconds read timeout
+	if (mc_device  == -1)
+	{
+		printf("ERROR: UNABLE TO OPEN MOTION CONTROLLER PORT ON %s.",MC_Device.c_str());
+		return 0;
+	}
+	else
+	{
+
+		INITIALIZED = 1;
+		tcgetattr(mc_device,&oldtio);
+		bzero(&newtio, sizeof(newtio));
+		newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+		//newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
+		newtio.c_iflag = IGNPAR;
+		newtio.c_oflag = 0;
+		newtio.c_lflag = 0;
+		newtio.c_cc[VTIME]    = 1;
+		newtio.c_cc[VMIN]     = 5;
+				  // 0.5 seconds read timeout
 
 
-	    tcflush(mc_device, TCIFLUSH);
-	    tcsetattr(mc_device,TCSANOW,&newtio);
-    }
-    else
-    {
-struct termios tty;
-struct termios tty_old;
-memset (&tty, 0, sizeof tty);
+		tcflush(mc_device, TCIFLUSH);
+		tcsetattr(mc_device,TCSANOW,&newtio);
+	}
+    
 
-/* Error Handling */
-if ( tcgetattr ( mc_device, &tty ) != 0 ) {
-   std::cout << "Error " << errno << " from tcgetattr: " << strerror(errno) << std::endl;
-}
+	ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
+	ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
+	ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
+	ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
+	//ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
 
-/* Save old tty parameters */
-tty_old = tty;
-
-/* Set Baud Rate */
-cfsetospeed (&tty, (speed_t)B9600);
-cfsetispeed (&tty, (speed_t)B9600);
-
-/* Setting other Port Stuff */
-tty.c_cflag     &=  ~PARENB;            // Make 8n1
-tty.c_cflag     &=  ~CSTOPB;
-tty.c_cflag     &=  ~CSIZE;
-tty.c_cflag     |=  CS8;
-
-tty.c_cflag     &=  ~CRTSCTS;           // no flow control
-tty.c_cc[VMIN]   =  1;                  // read doesn't block
-tty.c_cc[VTIME]  =  5;                  // 0.5 seconds read timeout
-tty.c_cflag     |=  CREAD | CLOCAL;     // turn on READ & ignore ctrl lines
-
-/* Make raw */
-cfmakeraw(&tty);
-
-/* Flush Port, then applies attributes */
-tcflush( mc_device, TCIFLUSH );
-if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
-   std::cout << "Error " << errno << " from tcsetattr" << std::endl;
-}}
-}  
-
-  ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
-  ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
-  ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
-  ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
-  ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
-  ros::Rate loop_rate(100);
+	ros::Rate loop_rate(100);
 	std::clock_t    start;
-  ::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
-  ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-  geometry_msgs::Pose2D Rover_Pose;
-  ICARUS_Diagnostic.header.frame_id = "ICARUS_Motion_Controller_Diagnostic";
-  ICARUS_Diagnostic.System = ROVER;
-  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  ICARUS_Diagnostic.Component = MOTION_CONTROLLER_NODE;
+	::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
+	::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+	geometry_msgs::Pose2D Rover_Pose;
+	ICARUS_Diagnostic.header.frame_id = "ICARUS_Motion_Controller_Diagnostic";
+	ICARUS_Diagnostic.System = ROVER;
+	ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+	ICARUS_Diagnostic.Component = MOTION_CONTROLLER_NODE;
   
-  temp1 = 0;
+	temp1 = 0;
 	while( ros::ok() && INITIALIZED)
 	{
     
@@ -227,173 +194,131 @@ if ( tcsetattr ( mc_device, TCSANOW, &tty ) != 0) {
 		}
 		else
 		{
-			printf("Armed Sttate: UNKNOWN!!!\r\n");
+			printf("Armed State: UNKNOWN!!!\r\n");
 		}
 	  	try
-	  {
-	    int wr;
-      temp1++;
-      if (temp1 > 180) { temp1 = 0; }
+		{
+			int wr;
+			temp1++;
+			if (temp1 > 180) { temp1 = 0; }
       
-      char cmd[255];
-      memset(cmd,'\0',sizeof cmd);
-	Steer_Command = STEER_SERVO_CENTER;
-	Drive_Command = DRIVE_MOTOR_NEUTRAL;
-      sprintf(cmd,"$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);
-	if (DEBUG_MODE == 1) { printf("$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);}
-      //printf();
-      wr = write(mc_device,cmd,sizeof(cmd)-1);
-      char buf = '\0';
-      char response[255];
-      int spot = 0;
+			char cmd[255];
+			memset(cmd,'\0',sizeof cmd);
+			Steer_Command = STEER_SERVO_CENTER;
+			Drive_Command = DRIVE_MOTOR_NEUTRAL;
+			sprintf(cmd,"$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);
+			if (DEBUG_MODE == 1) { printf("$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);}
+			//printf();
+			wr = write(mc_device,cmd,sizeof(cmd)-1);
+			char buf = '\0';
+			char response[255];
+			int spot = 0;
     
-      memset(response,'\0',sizeof response);
-      //res = read(mc_device,&buf,1);
-      //printf("x%c",buf);
+			memset(response,'\0',sizeof response);
+			//res = read(mc_device,&buf,1);
+			//printf("x%c",buf);
       
-      do
-      {
-        
-        res = read(mc_device,&buf,1);
-        if (buf == '$') 
-        {
-          in_message_started = 1;
-          in_message_completed = 0;
-        }
-        if(in_message_started == 1)
-        {
-          sprintf(&response[spot],"%c",buf);
-          spot += res;
-        }
-      } while(buf != '*' && res > 0);
-      in_message_started = 0;
-      in_message_completed = 1;
-      string in_message(response);
-	if (DEBUG_MODE == 1) { printf("%s\r\n",in_message.c_str()); }	
-	if (in_message.compare(0,4,"$POS") == 0)
-      	{
-        	istringstream ss(in_message);
-       	 	string token;
-        	token_index = 0;
-        	while(getline(ss,token,','))
-		{
-          		std::string::size_type sz;
-         		if(token_index == 1) { Pose_X = atof(token.c_str()); }
-          		if(token_index == 2) { Pose_Y = atof(token.c_str()); }
-          		if(token_index == 3) { Heading = atof(token.c_str()); }
-          		token_index++;
-        	}
-        	ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
-		ICARUS_Diagnostic.Level = DEBUG;
-		ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-	//ICARUS_Diagnostic.Description =  "";
-		if (DEBUG_MODE == 1)  { cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl; }
-        	Rover_Pose.x = Pose_X;
-		Rover_Pose.y = Pose_Y;
-		Rover_Pose.theta = Heading;
-		Pub_ICARUS_Rover_Pose.publish(Rover_Pose);
-      	}
-      	else if(in_message.compare(0,4,"$STA") == 0)
-    	{
-		if(in_message.compare(5,3,"ARM") == 0)
-		{
-	    		istringstream ss(in_message);
-	    		string token;
-            		token_index = 0;
-	    		while(getline(ss,token,','))
+			do
 			{
-	      			std::string::size_type sz;
-	      			if(token_index == 2) { armed_state = atoi(token.c_str()); }
-				token_index++;
-	    		}
-	    		
-		}
-    	}
-	else
-	{
-		ICARUS_Diagnostic.header.stamp = ros::Time::now();
-		ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
-		ICARUS_Diagnostic.Level = CAUTION;
-		ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-		Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-	}
-/*
-int n = 0,
-    spot = 0;
-char buf = '\0';
-
-
-char response[255];
-memset(response, '\0', sizeof response);
-
-do {
-   n = read( mc_device, &buf, 1 );
-   if (n > 0) { printf("%c",buf); }
-   sprintf( &response[spot], "%c", buf );
-   spot += n;
-} while( buf != '\r' && n > 0);
-if (n < 0) {
-   //std::cout << "Error reading: " << strerror(errno) << std::endl;
-}
-else if (n == 0) {
-    std::cout << "Read nothing!" << std::endl;
-}
-else {
-    std::cout << "Response: " << response << std::endl;
-}*/
-	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-      /*if (digitalRead(EXTENDED_SWITCH_PIN)==0)
-      {
-        Extended_Switch = true;
-      }
-      else
-      {
-        Extended_Switch = false;
-      }
-      if (digitalRead(RETRACTED_SWITCH_PIN)==0)
-      {
-        Retracted_Switch = true;
-      }
-      else
-      {
-        Retracted_Switch = false;
-      }*/
+        
+				res = read(mc_device,&buf,1);
+				if (buf == '$') 
+				{
+					in_message_started = 1;
+					in_message_completed = 0;
+				}
+				if(in_message_started == 1)
+				{
+					sprintf(&response[spot],"%c",buf);
+					spot += res;
+				}
+			} while(buf != '*' && res > 0);
+			in_message_started = 0;
+			in_message_completed = 1;
+			string in_message(response);
+			if (DEBUG_MODE == 1) { printf("%s\r\n",in_message.c_str()); }	
+			if (in_message.compare(0,4,"$POS") == 0)
+			{
+				istringstream ss(in_message);
+				string token;
+				token_index = 0;
+				while(getline(ss,token,','))
+				{
+					std::string::size_type sz;
+					if(token_index == 1) { Pose_X = atof(token.c_str()); }
+					if(token_index == 2) { Pose_Y = atof(token.c_str()); }
+					if(token_index == 3) { Heading = atof(token.c_str()); }
+					token_index++;
+				}
+				ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
+				ICARUS_Diagnostic.Level = DEBUG;
+				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+				//ICARUS_Diagnostic.Description =  "";
+				if (DEBUG_MODE == 1)  { cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl; }
+				Rover_Pose.x = Pose_X;
+				Rover_Pose.y = Pose_Y;
+				Rover_Pose.theta = Heading;
+				//Pub_ICARUS_Rover_Pose.publish(Rover_Pose);
+			}
+			
+			else if(in_message.compare(5,3,"ARM") == 0)
+			{
+				istringstream ss(in_message);
+				string token;
+				token_index = 0;
+				while(getline(ss,token,','))
+				{
+					std::string::size_type sz;
+					if(token_index == 2) { armed_state = atoi(token.c_str()); }
+					token_index++;
+				}
+			}
+			else
+			{
+				ICARUS_Diagnostic.header.stamp = ros::Time::now();
+				ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
+				ICARUS_Diagnostic.Level = CAUTION;
+				ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+				Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+			}
+			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+     
 
       //Recharge_FSM(dtime);
-      Probe_Status.header.stamp = ros::Time::now();
-      Probe_Status.header.frame_id = "Probe_Status";
-      Probe_Status.Probe_State = Probe_State;
-      Probe_Status.Extended_Switch = Extended_Switch;
-      Probe_Status.Retracted_Switch = Retracted_Switch;  
-      Probe_Status.Probe_Error = Probe_Error;
+			Probe_Status.header.stamp = ros::Time::now();
+			Probe_Status.header.frame_id = "Probe_Status";
+			Probe_Status.Probe_State = Probe_State;
+			Probe_Status.Extended_Switch = Extended_Switch;
+			Probe_Status.Retracted_Switch = Retracted_Switch;  
+			Probe_Status.Probe_Error = Probe_Error;
 
     
-	    Pub_ICARUS_Probe_Status.publish(Probe_Status);  
+			Pub_ICARUS_Probe_Status.publish(Probe_Status);  
 
-      //ICARUS Diagnostics Publisher
-      ICARUS_Diagnostic.header.stamp = ros::Time::now();
-      Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-	  }
-	  catch(const std::exception& ex)
-	  {
-	    ROS_INFO("ERROR:%s",ex.what());
-      close(mc_device);
+			  //ICARUS Diagnostics Publisher
+			  ICARUS_Diagnostic.header.stamp = ros::Time::now();
+			  Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+		}
+		catch(const std::exception& ex)
+		{
+			ROS_INFO("ERROR:%s",ex.what());
+			close(mc_device);
       
-      //ICARUS Diagnostics Publisher
-      ICARUS_Diagnostic.header.stamp = ros::Time::now();
-      ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-      ICARUS_Diagnostic.Level = FATAL;
-      ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-      ICARUS_Diagnostic.Description = ex.what();
-      Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-	  }
-  }
-  close(mc_device);
-  ICARUS_Diagnostic.header.stamp = ros::Time::now();
-  ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-  ICARUS_Diagnostic.Level = SEVERE;
-  ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
-  ICARUS_Diagnostic.Description = "Node Closed.";
-  Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+			//ICARUS Diagnostics Publisher
+			ICARUS_Diagnostic.header.stamp = ros::Time::now();
+			ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+			ICARUS_Diagnostic.Level = FATAL;
+			ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+			ICARUS_Diagnostic.Description = ex.what();
+			Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+		}
+	}
+	close(mc_device);
+	ICARUS_Diagnostic.header.stamp = ros::Time::now();
+	ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+	ICARUS_Diagnostic.Level = SEVERE;
+	ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+	ICARUS_Diagnostic.Description = "Node Closed.";
+	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
   
 }

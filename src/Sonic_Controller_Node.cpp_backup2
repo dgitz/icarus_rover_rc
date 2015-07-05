@@ -34,14 +34,6 @@ string SC_Device = "";
 int Baud_Rate = -1;
 int in_message_started = 0;
 int in_message_completed = 0;
-int in_message_ready = 0;
-//Sonar Variables
-int SonarDistance_1 = 0;
-int SonarDistance_2 = 0;
-int SonarDistance_3 = 0;
-int hex2dec(char);
-int hex2dec(char,char);
-
 
 int main(int argc, char** argv)
 {
@@ -66,7 +58,7 @@ int main(int argc, char** argv)
   	nh.getParam("angle_increment_deg",angle_increment);
   	nh.getParam("range_min_inch",range_min);
   	nh.getParam("range_max_inch",range_max);
-	printf("Min Range: %d Max Range: %d",range_min,range_max);
+
 	int sc_device;
   	struct termios oldtio,newtio;
   	int buffer_length = 255;
@@ -106,8 +98,8 @@ int main(int argc, char** argv)
 		INITIALIZED = 1;
 		tcgetattr(sc_device,&oldtio);
 	    bzero(&newtio, sizeof(newtio));
-	    newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-        //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
+	    newtio.c_cflag = B9600 | CS8 | CLOCAL | CREAD;
+      //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
 	    newtio.c_iflag = IGNPAR;
 	    newtio.c_oflag = 0;
 	    newtio.c_lflag = 0;
@@ -140,57 +132,81 @@ int main(int argc, char** argv)
 		loop_rate.sleep();
 		try
 		{
-			char buf = 0;
+			/*
+			int wr;
+			//wr = write(mc_device,"HELLO, WORLD!\r\n",15);
+			char buf = '\0';
 			char response[255];
-			int spot = 0;
-			memset(response,0,sizeof response);
-			in_message_completed = 0;
-			int length = 0;
-			int temp_counter = 0;
-			
-			in_message_started = 0;
-			in_message_completed = 0;
-			in_message_ready = 0;
-			while(!in_message_completed)
+			int index = 0;
+			res = read(sc_device,&response,255);
+			response[res] = 0;
+			if (res > 0) { printf("xxx.%s",response); }
+			if (message_complete == 0)
 			{
-				memset(response,0,sizeof response);
-				res = read(sc_device,&response,10);
-				//printf("Read %d bytes\r\n",res);
-				if (res > 0)
+				
+				if (message_complete == 1)
 				{
-					for(int i = 0; i < res; i++)
-					{
-						//printf("%c\r\n",response[i]);
-					}
-					for(int i = 0; i < res; i++)
-					{
-						if ((response[i]   == 'A') and
-							(response[i+1] == 'B') and
-							(response[i+2] == '1') and
-							(response[i+3] == '2'))
-						{
-							for(int j = i; j < res; j++)
-							{
-								//printf("%c\r\n",response[j]);
-							}
-							SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
-							SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
-							SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
-							//ping_distances[0] = value1;
-							//ping_distances[1] = value2;
-							//ping_distances[2] = value3;
-							in_message_ready = 1;
-							//printf("Got AB12 Message with value1: %d value2: %d value3: %d\r\n",value1,value2,value3);
-							
-						}
-						
-					}
+					break;
 				}
-				in_message_completed = 1;
-			}
+				string tempstr(response);
+				for(int i = 0; i <tempstr.size();i++)
+				{
+					if (DEBUG_MODE == 1){ printf("%s",tempstr.c_str()); }
+					if (tempstr[i] == '$')
+					{
+						message_index = 0;
+						memset(&message,0,256);
+						sprintf(&message[message_index++],"$");
+						message_complete = 0;
+						message_started = 1;
+					}
+					else if ((tempstr[i] == '*') && (message_started == 1))
+					{
+							sprintf(&message[message_index++],"*");
+							message_complete = 1;
+							message_started = 0;
+					}
+					else if (message_started == 1)
+					{ 
+							sprintf(&message[message_index++],"%c",tempstr[i]);
+					}		
 
-			if((in_message_ready == 1) and (in_message_completed == 1))
-			{
+				}
+			}
+			if (message_complete == 1) 
+			{  
+				if (DEBUG_MODE == 1) {    cout << message << endl;}
+				message_complete = 0;
+				string tempstr(message);
+				string delimiter = ",";
+				int pos = 0;
+				string token;
+
+				string message_type = tempstr.substr(0,tempstr.find(delimiter));
+				ping_index = 0;
+				if( message_type.compare("$SON") ==0)
+				{
+					int skipme = 1;
+					while(( pos = tempstr.find(delimiter)) != std::string::npos)
+					{
+	
+							token = tempstr.substr(0,pos);
+	
+							if (skipme == 0)
+							{
+								ping_distances[ping_index++] = atol(token.c_str());
+	
+							}
+							skipme = 0;
+							tempstr.erase(0,pos+delimiter.length());
+					}
+					pos = tempstr.find("*");
+					token = tempstr.substr(0,pos);
+  
+						ping_distances[ping_index++] = atol(token.c_str());
+  
+				}
+				
 				dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
 				start = std::clock();
 
@@ -204,29 +220,68 @@ int main(int argc, char** argv)
 				Sonar_Scan.range_max = range_max;
 				Sonar_Scan.scan_time = dtime;
 				Sonar_Scan.ranges.resize(ping_sensor_count);
-				
-				ping_distances[0] = SonarDistance_1;
-				ping_distances[1] = SonarDistance_2;
-				ping_distances[2] = SonarDistance_3;
-				
-				for(int j = 0; j < ping_sensor_count; j++)
-				{
-					if (ping_distances[j] < range_min) { ping_distances[j] = range_min; }
-					else if (ping_distances[j] > range_max) { ping_distances[j] = range_max; }
-					
-					Sonar_Scan.ranges[j] = ping_distances[j];
-					//Sonar_Scan.intensities[j] = ping_distances[j];//+100; 
+				for(int i = 0; i < ping_sensor_count;i++)
+				{  
+					if (ping_distances[i] < range_min) { ping_distances[i] = range_min; }
+					else if (ping_distances[i] > range_max) { ping_distances[i] = range_max; }
+					Sonar_Scan.ranges[i] = ping_distances[i];
+					Sonar_Scan.intensities[i] = ping_distances[i]+100; 
 				}
-				printf("Sonar D1: %d D2: %d D3: %d Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_sensor_count);
+ 
 				Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
-				
 				ICARUS_Diagnostic.header.stamp = ros::Time::now();
 				ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
 				ICARUS_Diagnostic.Level = NO_ERROR;
 				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
 				Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-			}
+			}*/
+			
+      //res = read(mc_device,&buf,1);
+		  //printf("x%c",buf);
+			char buf = '\0';
+			char response[255];
+			int spot = 0;
+			memset(response,'\0',sizeof response);
+			do
+			{
+			
+				res = read(sc_device,&buf,1);
+				cout << buf;
+				if (buf == '$') 
+				{
+					in_message_started = 1;
+					in_message_completed = 0;
+				}
+				if(in_message_started == 1)
+				{
+					sprintf(&response[spot],"%c",buf);
+					spot += res;
+				}
+				} while(buf != '*' && res > 0);
+				in_message_started = 0;
+				in_message_completed = 1;
+				string in_message(response);
+				//if (DEBUG_MODE == 1) { printf("Got: %s\r\n",in_message.c_str()); }	
+				if (in_message.compare(0,4,"$SON") == 0)
+				{
+					istringstream ss(in_message);
+					string token;
+					token_index = 0;
+					while(getline(ss,token,','))
+					{
+						std::string::size_type sz;
+						if(token_index == 1) { ping_distances[0] = atof(token.c_str()); }
+						if(token_index == 2) { ping_distances[1] = atof(token.c_str()); }
+						if(token_index == 3) { ping_distances[2] = atof(token.c_str()); }
+						token_index++;
+					}
+        	
+			
 
+
+
+
+			}
 		}
 		catch(const std::exception& ex)
 		{
@@ -241,70 +296,4 @@ int main(int argc, char** argv)
 	}
 	close(sc_device);
 
-}
-
-int hex2dec(char hexdigit)
-{
-	int temp = 0;
-	switch (hexdigit)
-	{
-		case '0':
-			temp = hexdigit - 48;
-			break;
-		case '1':
-			temp = hexdigit - 48;
-			break;
-		case '2':
-			temp = hexdigit - 48;
-			break;
-		case '3':
-			temp = hexdigit - 48;
-			break;
-		case '4':
-			temp = hexdigit - 48;
-			break;
-		case '5':
-			temp = hexdigit - 48;
-			break;
-		case '6':
-			temp = hexdigit - 48;
-			break;
-		case '7':
-			temp = hexdigit - 48;
-			break;
-		case '8':
-			temp = hexdigit - 48;
-			break;
-		case '9':
-			temp = hexdigit - 48;
-			break;
-		case 'A':
-			temp = hexdigit - 55;
-			break;
-		case 'B':
-			temp = hexdigit - 55;
-			break;
-		case 'C':
-			temp = hexdigit - 55;
-			break;
-		case 'D':
-			temp = hexdigit - 55;
-			break;
-		case 'E':
-			temp = hexdigit - 55;
-			break;
-		case 'F':
-			temp = hexdigit - 55;
-			break;
-		default:
-			temp = 0;
-			break;
-	}
-	return temp;
-}
-int hex2dec(char hexdigit1,char hexdigit2)
-{
-	int temp = 0;
-	temp = hex2dec(hexdigit1)*16 + hex2dec(hexdigit2);
-	return temp;
 }
