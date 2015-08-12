@@ -1,8 +1,8 @@
 Header header
-int64 System
-int64 SubSystem
-int64 Component
-int64 Diagnostic_Type
-int64 Level
-int64 Diagnostic_Message
+uint16 System
+uint16 SubSystem
+uint16 Component
+uint16 Diagnostic_Type
+uint16 Level
+uint16 Diagnostic_Message
 string Description
