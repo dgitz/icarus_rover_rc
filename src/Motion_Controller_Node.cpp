@@ -3,7 +3,9 @@
 //Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Joy.h>
-#include <geometry_msgs/Pose2D.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/NavSatStatus.h>
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -23,6 +25,9 @@
 #include "icarus_rover_rc/ICARUS_Probe_Command.h"
 #include "icarus_rover_rc/ICARUS_Diagnostic.h"
 
+#include "roscopter/State.h"
+
+
 using namespace std;
 
 int Extended_Switch = 0;
@@ -39,11 +44,7 @@ string MC_Device = "";
 int Baud_Rate = -1;
 int in_message_started = 0;
 int in_message_completed = 0;
-
-//Position Variables
-double Pose_X;
-double Pose_Y;
-double Heading;
+int Gps_Valid = 0; 
 
 //Motion Variables
 int Steer_Command;
@@ -65,6 +66,19 @@ void ICARUS_Probe_Command_Callback(const icarus_rover_rc::ICARUS_Probe_Command::
   //ROS_INFO("I heard: [%s]", msg->data.c_str());
   Recharge_Command = 0;//msg.Charge_Command;
   
+}
+
+void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
+{
+	//printf("GPS Status: %d",msg->status.status);
+	if(msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) 
+	{ 
+		Gps_Valid = 0; 
+	}
+	else
+	{
+		Gps_Valid = 1;
+	}
 }
 void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 {
@@ -122,56 +136,25 @@ void Recharge_FSM(double dtime)
 }
 int main(int argc, char **argv)
 {
-	int INITIALIZED = 0;
+	int INITIALIZED = 1;
 	ros::init(argc, argv, "Motion_Controller");
 	ros::NodeHandle nh("~");
 	//nh.getParam("target_count",target_count);
-	nh.getParam("mc_device",MC_Device);
-	nh.getParam("baudrate",Baud_Rate);
 	nh.getParam("DEBUG_MODE",DEBUG_MODE);
-	int mc_device;
-	struct termios oldtio,newtio;
-	int res;
   
-	mc_device= open(MC_Device.c_str(),O_RDWR | O_NOCTTY );
-
-	if (mc_device  == -1)
-	{
-		printf("ERROR: UNABLE TO OPEN MOTION CONTROLLER PORT ON %s.",MC_Device.c_str());
-		return 0;
-	}
-	else
-	{
-
-		INITIALIZED = 1;
-		tcgetattr(mc_device,&oldtio);
-		bzero(&newtio, sizeof(newtio));
-		newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-		//newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
-		newtio.c_iflag = IGNPAR;
-		newtio.c_oflag = 0;
-		newtio.c_lflag = 0;
-		newtio.c_cc[VTIME]    = 1;
-		newtio.c_cc[VMIN]     = 5;
-				  // 0.5 seconds read timeout
-
-
-		tcflush(mc_device, TCIFLUSH);
-		tcsetattr(mc_device,TCSANOW,&newtio);
-	}
-    
+	
 
 	ros::Subscriber Sub_ICARUS_Probe_Command_Callback = nh.subscribe("ICARUS_Probe_Command", 1000, ICARUS_Probe_Command_Callback);
 	ros::Publisher Pub_ICARUS_Probe_Status = nh.advertise<icarus_rover_rc::ICARUS_Probe_Status>("ICARUS_Probe_Status", 1000);  
 	ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 	ros::Subscriber Pub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("ICARUS_Rover_Control",1000,ICARUS_Rover_Control_Callback);
+	ros::Subscriber GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("gps",1000,ICARUS_Rover_GPS_Callback);  //I only care if the GPS has a fix.  I don't care about the Pose.
 	//ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
 
 	ros::Rate loop_rate(100);
 	std::clock_t    start;
 	::icarus_rover_rc::ICARUS_Probe_Status Probe_Status;
 	::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-	geometry_msgs::Pose2D Rover_Pose;
 	ICARUS_Diagnostic.header.frame_id = "ICARUS_Motion_Controller_Diagnostic";
 	ICARUS_Diagnostic.System = ROVER;
 	ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
@@ -198,81 +181,27 @@ int main(int argc, char **argv)
 		}
 	  	try
 		{
-			int wr;
-			temp1++;
-			if (temp1 > 180) { temp1 = 0; }
-      
-			char cmd[255];
-			memset(cmd,'\0',sizeof cmd);
+			
 			Steer_Command = STEER_SERVO_CENTER;
 			Drive_Command = DRIVE_MOTOR_NEUTRAL;
-			sprintf(cmd,"$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);
+			
 			if (DEBUG_MODE == 1) { printf("$NAV,%d,%d,*\r\n",(int)Steer_Command,(int)Drive_Command);}
 			//printf();
-			wr = write(mc_device,cmd,sizeof(cmd)-1);
-			char buf = '\0';
-			char response[255];
-			int spot = 0;
-    
-			memset(response,'\0',sizeof response);
-			//res = read(mc_device,&buf,1);
-			//printf("x%c",buf);
-      
-			do
+			if(1)
 			{
-        
-				res = read(mc_device,&buf,1);
-				if (buf == '$') 
-				{
-					in_message_started = 1;
-					in_message_completed = 0;
-				}
-				if(in_message_started == 1)
-				{
-					sprintf(&response[spot],"%c",buf);
-					spot += res;
-				}
-			} while(buf != '*' && res > 0);
-			in_message_started = 0;
-			in_message_completed = 1;
-			string in_message(response);
-			if (DEBUG_MODE == 1) { printf("%s\r\n",in_message.c_str()); }	
-			if (in_message.compare(0,4,"$POS") == 0)
-			{
-				istringstream ss(in_message);
-				string token;
-				token_index = 0;
-				while(getline(ss,token,','))
-				{
-					std::string::size_type sz;
-					if(token_index == 1) { Pose_X = atof(token.c_str()); }
-					if(token_index == 2) { Pose_Y = atof(token.c_str()); }
-					if(token_index == 3) { Heading = atof(token.c_str()); }
-					token_index++;
-				}
 				ICARUS_Diagnostic.Diagnostic_Type = COMMUNICATIONS;
 				ICARUS_Diagnostic.Level = DEBUG;
 				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
 				//ICARUS_Diagnostic.Description =  "";
-				if (DEBUG_MODE == 1)  { cout << setprecision(8) << "X: " << Pose_X << " Y: " << Pose_Y << " Heading: " << Heading << " Len: " << spot << endl; }
-				Rover_Pose.x = Pose_X;
-				Rover_Pose.y = Pose_Y;
-				Rover_Pose.theta = Heading;
+				if (DEBUG_MODE == 1) 
+				{
+					if(Gps_Valid == 0) { cout << "GPS: NO FIX." << endl;}
+					else if(Gps_Valid == 1) { cout << "GPS: NAV READY." << endl; }
+				}
 				//Pub_ICARUS_Rover_Pose.publish(Rover_Pose);
 			}
 			
-			else if(in_message.compare(5,3,"ARM") == 0)
-			{
-				istringstream ss(in_message);
-				string token;
-				token_index = 0;
-				while(getline(ss,token,','))
-				{
-					std::string::size_type sz;
-					if(token_index == 2) { armed_state = atoi(token.c_str()); }
-					token_index++;
-				}
-			}
+			
 			else
 			{
 				ICARUS_Diagnostic.header.stamp = ros::Time::now();
@@ -302,7 +231,6 @@ int main(int argc, char **argv)
 		catch(const std::exception& ex)
 		{
 			ROS_INFO("ERROR:%s",ex.what());
-			close(mc_device);
       
 			//ICARUS Diagnostics Publisher
 			ICARUS_Diagnostic.header.stamp = ros::Time::now();
@@ -313,7 +241,6 @@ int main(int argc, char **argv)
 			Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 		}
 	}
-	close(mc_device);
 	ICARUS_Diagnostic.header.stamp = ros::Time::now();
 	ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
 	ICARUS_Diagnostic.Level = SEVERE;

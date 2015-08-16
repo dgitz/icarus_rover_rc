@@ -6,6 +6,8 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <sensor_msgs/NavSatStatus.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -24,23 +26,43 @@
 #include <unistd.h>
 #include <linux/input.h>
 #include <fcntl.h>
+
+#include "roscopter/Attitude.h"
+#include "roscopter/State.h"
 using namespace std;
+#define PI 3.14159265
 
-
-#define MOUSEID "/dev/input/event0"
-#define MOUSEID1 "/dev/input/event1"
-//#define MOUSEID2 "/dev/input/event2"
-#define MOUSEID2 "/dev/input/event1"
 //Communication Variables
+int Gps_Valid = 0;
 
 //Operation Variables
 string Mode = "";
+double Sensor_Separation = 4.0; //in, x-axis
 
 //Program Variables
 double dtime = 0.0;
 double Pose_X;
 double Pose_Y;
 double Pose_Theta;
+		
+void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
+{
+	//printf("GPS Status: %d",msg->status.status);
+	if(msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) 
+	{ 
+		Gps_Valid = 0; 
+	}
+	else
+	{
+		Gps_Valid = 1;
+		Pose_X = msg->latitude;
+		Pose_Y = msg->longitude;
+	}
+}
+void ICARUS_Rover_Attitude_Callback(const roscopter::Attitude::ConstPtr& msg)
+{
+	Pose_Theta = msg->yaw*180.0/PI;
+}
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
 
@@ -89,29 +111,19 @@ int main(int argc, char **argv)
   nh.getParam("Mode",Mode);
   
     
-  ros::Publisher Pub_ICARUS_Pose_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Pose_Diagnostic",1000);
-  ros::Rate loop_rate(100);
-  std::clock_t    start;
-  ros::Publisher Pub_ICARUS_Rover_Odom;    
+	//ros::Publisher Pub_ICARUS_Pose_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Pose_Diagnostic",1000);
+	ros::Rate loop_rate(100);
+	std::clock_t    start;
+	//ros::Publisher Pub_ICARUS_Rover_Odom;    
 
 
-   ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-  ICARUS_Diagnostic.header.frame_id = "ICARUS_Pose_Diagnostic";
-  ICARUS_Diagnostic.System = ROVER;
-  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  ICARUS_Diagnostic.Component = POSE_NODE;
+	//::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+	//ICARUS_Diagnostic.header.frame_id = "ICARUS_Pose_Diagnostic";
+	//ICARUS_Diagnostic.System = ROVER;
+	//ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+	//ICARUS_Diagnostic.Component = POSE_NODE;
   
-	int fd;
-	struct input_event ie;
-	ssize_t n;
-	if((fd = open(MOUSEID2,O_RDONLY)) == -1)
-	{
-		cout << "Couldn't Open Mouse: " << fd << endl;
-	}
-	int x = 0;
-	int y = 0;
-	int dx = 0;
-	int dy = 0;
+	
 	while(ros::ok())
 	{
     
@@ -119,59 +131,16 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
 		
+		ros::Subscriber GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("gps",1000,ICARUS_Rover_GPS_Callback);  //Get the position from here.
+		ros::Subscriber Attitude_State = nh.subscribe<roscopter::Attitude>("attitude",1000,ICARUS_Rover_Attitude_Callback);  //Get the Attitude (Heading) from here.
 		
-		n = read(fd,&ie,sizeof ie);
-		if(n>0)
-		/*{
-			unsigned char *ptr = (unsigned char*)&ie;
-			//x = (char)ptr[4]; y = (char)ptr[5];
-			//printf("x: %d y: %d\r\n",x,y);
-			for(int i = 0; i < sizeof(ie);i++)
-			{
-				printf("%02X ",*ptr++);
-			}
-			printf("\n");*/
-
-		{
-			//cout << "Type: " << ie.type << " Code: " << ie.code << " Value: " << ie.value << endl; 
-			if(ie.type == 0x02)
-			{
-				if(ie.code == 0x00)
-				{	
-					x+=ie.value; dx = ie.value;
-				}
-				else
-				{
-					dx = 0;
-				}
-				if(ie.code == 0x01)
-				{   
-					y+=ie.value; 
-					dy = ie.value;
-				}
-				else
-				{
-					dy = 0;
-				}
-				
-				
-			}
-			else
-			{
-				dx = 0;
-				dy = 0;
-			}
-			
-			
-		}
-		cout << "dX: " << dx << " dY: " << dy << endl;
 		
 	  try
 	  {
 	    
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-            ICARUS_Diagnostic.header.stamp = ros::Time::now();
-            Pub_ICARUS_Pose_Diagnostic.publish(ICARUS_Diagnostic);
+        /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
+        Pub_ICARUS_Pose_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
 	    Rover_Odometry.header.stamp = ros::Time::now();
 	    Rover_Odometry.header.frame_id = "/odom";
@@ -180,19 +149,19 @@ int main(int argc, char **argv)
 	    Rover_Odometry.pose.pose.position.z = 0.0;
 	    geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(Pose_Theta);
 	    Rover_Odometry.pose.pose.orientation = odom_quat;
-	    Pub_ICARUS_Rover_Odom.publish(Rover_Odometry);
+	    Pub_ICARUS_Rover_Odom.publish(Rover_Odometry);*/
 	  }
 	  catch(const std::exception& ex)
 	  {
 	    ROS_INFO("ERROR:%s",ex.what());
             
             //ICARUS Diagnostics Publisher
-            ICARUS_Diagnostic.header.stamp = ros::Time::now();
+            /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
             ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
             ICARUS_Diagnostic.Level = FATAL;
             ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
             ICARUS_Diagnostic.Description = ex.what();
-            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+            Pub_ICARUS_Pose_Diagnostic.publish(ICARUS_Diagnostic);*/
 	  }
   }
 
