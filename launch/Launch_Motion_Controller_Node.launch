@@ -4,6 +4,7 @@
   <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
     <param name="DEBUG_MODE" value="1"/>  
   </node>
-  <node name="roscopter_node" pkg="roscopter" type="roscopter_node.py" output="screen">  
+  <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py" output="screen">
   </node>
+
 </launch>

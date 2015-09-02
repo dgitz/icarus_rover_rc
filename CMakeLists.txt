@@ -11,13 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
+  
   #usb_cam
-  message_generation
+  #message_generation
   tf
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(OpenCV REQUIRED)
+find_package(message_generation)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -50,13 +51,12 @@ find_package(OpenCV REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-   FILES
-   ICARUS_Target_Status.msg
-   ICARUS_Probe_Status.msg
-   ICARUS_Probe_Command.msg
-   ICARUS_Diagnostic.msg
- )
+add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HUD.msg)
+#   ICARUS_Target_Status.msg
+#   ICARUS_Probe_Status.msg
+#   ICARUS_Probe_Command.msg
+   #ICARUS_Diagnostic.msg
+
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -73,13 +73,13 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-   std_msgs
-   geometry_msgs
-   sensor_msgs
- )
-#generate_messages()
+#generate_messages(
+#  DEPENDENCIES
+#   std_msgs
+#   geometry_msgs
+#   sensor_msgs
+ #)
+generate_messages()
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -92,7 +92,7 @@ generate_messages(
 catkin_package(
    INCLUDE_DIRS include
   LIBRARIES
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -116,19 +116,21 @@ include_directories(include
 #add_executable(acquire_train_images src/acquire_train_images.cpp)
 #add_executable(pick_targets_from_train_images src/pick_targets_from_train_images.cpp)
 #add_executable(tune_targeting src/tune_targeting.cpp)
-add_executable(tf_broadcaster src/tf_broadcaster.cpp)
-add_executable(Targeting_Node src/Targeting_Node.cpp)
-add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
-add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
-add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
-add_executable(Mapping_Node src/Mapping_Node.cpp)
-add_executable(Pose_Node src/Pose_Node.cpp)
-#add_executable(Evolution_Node src/Evolution_Node.cpp)
 
+
+add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
+#add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
+#add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
+#add_executable(Mapping_Node src/Mapping_Node.cpp)
+#add_executable(Learning_Node src/Evolution_Node.cpp)
+
+#Obsolete Nodes
+#add_executable(tf_broadcaster src/tf_broadcaster.cpp)
+#add_executable(Targeting_Node src/Targeting_Node.cpp)
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 # add_dependencies(icarus_rover_rc_node icarus_rover_rc_generate_messages_cpp)
-
+#add_dependencies(Motion_Controller_Node ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(icarus_rover_rc_node
 #   ${catkin_LIBRARIES}
@@ -150,35 +152,32 @@ add_executable(Pose_Node src/Pose_Node.cpp)
 #  ${OpenCV_LIBRARIES}
   #${PROJECT_SOURCE_DIR}
 #)
-target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
+#target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
 
-target_link_libraries(Targeting_Node
+#target_link_libraries(Targeting_Node
   
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES}
-	#${PROJECT_SOURCE_DIR}
-)		
+#  ${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES}
+#	#${PROJECT_SOURCE_DIR}
+#)		
 
 target_link_libraries(Motion_Controller_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
 )		
-target_link_libraries(Sonic_Controller_Node
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-)
-target_link_libraries(Diagnostic_Node
-  ${catkin_LIBRARIES}
-	${OpenCV_LIBRARIES} 
-)
-target_link_libraries(Mapping_Node
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-target_link_libraries(Pose_Node
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
+#target_link_libraries(Sonic_Controller_Node
+#  ${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES} 
+#)
+#target_link_libraries(Diagnostic_Node
+#  ${catkin_LIBRARIES}
+#	${OpenCV_LIBRARIES} 
+#)
+#target_link_libraries(Mapping_Node
+#  ${catkin_LIBRARIES}
+#  ${OpenCV_LIBRARIES}
+#)
+
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}
 #  ${OpenCV_LIBRARIES}
