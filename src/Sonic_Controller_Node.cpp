@@ -39,6 +39,8 @@ int in_message_ready = 0;
 int SonarDistance_1 = 0;
 int SonarDistance_2 = 0;
 int SonarDistance_3 = 0;
+int SonarDistance_4 = 0;
+int SonarDistance_5 = 0;
 int hex2dec(char);
 int hex2dec(char,char);
 
@@ -154,7 +156,7 @@ int main(int argc, char** argv)
 			while(!in_message_completed)
 			{
 				memset(response,0,sizeof response);
-				res = read(sc_device,&response,10);
+				res = read(sc_device,&response,14);
 				//printf("Read %d bytes\r\n",res);
 				if (res > 0)
 				{
@@ -176,11 +178,13 @@ int main(int argc, char** argv)
 							SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
 							SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
 							SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
+							SonarDistance_4 = hex2dec(response[i+10],response[i+11]);
+							SonarDistance_5 = hex2dec(response[i+12],response[i+13]);
 							//ping_distances[0] = value1;
 							//ping_distances[1] = value2;
 							//ping_distances[2] = value3;
 							in_message_ready = 1;
-							//printf("Got AB12 Message with value1: %d value2: %d value3: %d\r\n",value1,value2,value3);
+							printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
 							
 						}
 						
@@ -208,6 +212,8 @@ int main(int argc, char** argv)
 				ping_distances[0] = SonarDistance_1;
 				ping_distances[1] = SonarDistance_2;
 				ping_distances[2] = SonarDistance_3;
+				ping_distances[3] = SonarDistance_4;
+				ping_distances[4] = SonarDistance_5;
 				
 				for(int j = 0; j < ping_sensor_count; j++)
 				{
@@ -217,7 +223,7 @@ int main(int argc, char** argv)
 					Sonar_Scan.ranges[j] = ping_distances[j];
 					//Sonar_Scan.intensities[j] = ping_distances[j];//+100; 
 				}
-				printf("Sonar D1: %d D2: %d D3: %d Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_sensor_count);
+				printf("Sonar D1: %d D2: %d D3: %d D4: %d D5: %d Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
 				Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
 				
 				/*ICARUS_Diagnostic.header.stamp = ros::Time::now();

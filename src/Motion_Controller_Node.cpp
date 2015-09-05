@@ -14,7 +14,9 @@
 #include <string>
 #include <math.h>
 #include <dirent.h>
+//#include <gps_common/conversions.h>
 #include "icarus_rover_rc/Definitions.h"
+#include "icarus_rover_rc/conversions.h"
 #include "icarus_rover_rc/ICARUS_Probe_Status.h"
 #include "icarus_rover_rc/ICARUS_Probe_Command.h"
 #include "icarus_rover_rc/RC.h"
@@ -22,7 +24,7 @@
 //#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 
 #include "icarus_rover_rc/State.h"
-
+#define PI 3.14159265359
 #define STEER_MAX_LEFT 1850 //MECHANICAL MAX: 1980
 #define STEER_MAX_RIGHT 1300 //MECHANICAL MAX: 1160
 #define STEER_CENTER 1620
@@ -34,7 +36,7 @@
 #define DRIVE_CHANNEL 2 //Motion Controller Drive PWM Pin
 
 #include <sys/time.h>
-
+void updatePose(double latitude,double longitude);
 
 using namespace std;
 
@@ -51,6 +53,8 @@ int current_gear = GEAR_PARK;
 //Position Variables
 float current_latitude = 0.0;
 float current_longitude = 0.0;
+double current_Northing = 0.0;
+double current_Easting = 0.0;
 float current_speed = 0.0;
 int current_speed_command = 0;
 int current_heading = 0;
@@ -60,7 +64,7 @@ int current_heading = 0;
 int DEBUG_MODE;
 double dtime = 0.0;
 
-ofstream out("logfile.txt");
+
 
 
 
@@ -75,13 +79,33 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 	else
 	{
 		Gps_Valid = 1;
+		//current_latitude = msg->latitude;
+		//current_longitude = msg->longitude;
+		//updatePose(msg->latitude,msg->longitude);
+		
+		//printf("GPS Status: FIX AVAILABLE.\r\n");
+		std::string zone;
 		current_latitude = msg->latitude;
 		current_longitude = msg->longitude;
-		//printf("GPS Status: FIX AVAILABLE.\r\n");
+		LLtoUTM(msg->latitude,msg->longitude,current_Northing,current_Easting,zone);
 	}
 	
 }
+void updatePose(double latitude,double longitude)
+{
+	int32_t Equatorial_Radius = 6378137;
+	double Eccentricity = .081819;
+	
+	int longitude_zone = 31+(int)(longitude/6);
+	double delta_longitude_rad = (double)(longitude-longitude_zone)*PI/180.0;
+	double latitude_rad = (double)(latitude*PI/180.0);
+	double longitude_rad = (double)(longitude*PI/180.0);
+	double temp1 = (Eccentricity*sin(latitude_rad))*(Eccentricity*sin(latitude_rad));
+	double rcurv_1 = Equatorial_Radius*(1.0-Eccentricity*Eccentricity)/pow((1-temp1),1.5);
+	double rcurv_2 = Equatorial_Radius/pow((1.0-temp1),0.5);
 
+	
+}
 void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 {
 	current_heading = msg->heading;
@@ -145,7 +169,15 @@ int main(int argc, char **argv)
 	ros::NodeHandle nh("~");
 	//nh.getParam("target_count",target_count);
 	nh.getParam("DEBUG_MODE",DEBUG_MODE);
-	out << "Time,GPS Valid,Gear,Drive_Command,current_speed,current_latitude,current_longitude,current_heading" << endl;
+	time_t rawtime;
+	struct tm * timeinfo;
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	char filename[80];
+	strcpy(filename,ctime(&rawtime));
+	strcat(filename,".txt");
+	ofstream out(filename);
+	out << "Time,GPS Valid,Armed,Gear,Drive_Command,Steer_Command,current_speed,current_latitude,current_longitude,current_heading,Northing,Easting" << endl;
 	//ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 	ros::Subscriber Sub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("/joy",1000,ICARUS_Rover_Control_Callback);
 	ros::Subscriber GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
@@ -171,7 +203,7 @@ int main(int argc, char **argv)
 	  	ros::spinOnce();
 	  	loop_rate.sleep();
 		joystick_timeout_counter++;  //Increment Joystick Timeout Counter
-		if(joystick_timeout_counter > 30) 
+		if(joystick_timeout_counter > 50) 
 		{ 
 			printf("Joystick Callback Timeout\r\n");// }
 			armed_state = DISARMED; 
@@ -202,10 +234,14 @@ int main(int argc, char **argv)
 			if(Gps_Valid == 1)
 			{
 				//cout << "Gear: " << current_gear << " Thr: " << Drive_Command << " Sp: " << current_speed << " GPS: " << Gps_Valid << " Lat: " << current_latitude << " Long: " << current_longitude << " Head: " << current_heading << endl;
-				//printf("Gear: %d Thr: %d Sp: %f GPS: %d Lat: %4.12f Long: %4.12f Head: %d\r\n",current_gear,Drive_Command,current_speed,Gps_Valid,current_latitude,current_longitude,current_heading);
+				//
 				struct timeval mytime;
 				gettimeofday(&mytime,NULL);
-				out << setprecision(8) << (mytime.tv_sec*1000000L + mytime.tv_usec) << "," << Gps_Valid << "," << current_gear << "," << Drive_Command << "," << current_speed << "," << current_latitude << "," << current_longitude << "," << current_heading << endl;
+				double cur_time = (double)(mytime.tv_sec + mytime.tv_usec/1000000.0);
+				
+				
+				out << setprecision(16) << cur_time << "," << Gps_Valid << "," << armed_state << "," << current_gear << "," << Drive_Command << "," << Steer_Command << "," << current_speed << "," << current_latitude << "," << current_longitude << "," << current_heading << "," << current_Northing << "," << current_Easting <<  endl;
+				printf("T: %f Armed: %d Gear: %d Thr: %d St: %d Sp: %f GPS: %d Lat: %4.12f Long: %4.12f Head: %d N: %f E: %f\r\n",cur_time,armed_state,current_gear,Drive_Command,Steer_Command,current_speed,Gps_Valid,current_latitude,current_longitude,current_heading,current_Northing,current_Easting);
 			}
 			//for(int i = 0; i < 8; i++) { RC_Command.channel[i] = Steer_Command; }
 			

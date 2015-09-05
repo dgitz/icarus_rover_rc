@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-  
+
   #usb_cam
   #message_generation
   tf
@@ -119,7 +119,7 @@ include_directories(include
 
 
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
-#add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
+add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
 #add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
 #add_executable(Mapping_Node src/Mapping_Node.cpp)
 #add_executable(Learning_Node src/Evolution_Node.cpp)
@@ -165,10 +165,10 @@ target_link_libraries(Motion_Controller_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
 )		
-#target_link_libraries(Sonic_Controller_Node
-#  ${catkin_LIBRARIES}
-#	${OpenCV_LIBRARIES} 
-#)
+target_link_libraries(Sonic_Controller_Node
+  ${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES} 
+)
 #target_link_libraries(Diagnostic_Node
 #  ${catkin_LIBRARIES}
 #	${OpenCV_LIBRARIES} 
