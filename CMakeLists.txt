@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 
   #usb_cam
-  #message_generation
+  message_generation
   tf
 )
 
@@ -51,7 +51,7 @@ find_package(message_generation)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HUD.msg)
+add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HUD.msg ICARUS_Diagnostic.msg)
 #   ICARUS_Target_Status.msg
 #   ICARUS_Probe_Status.msg
 #   ICARUS_Probe_Command.msg
@@ -120,8 +120,8 @@ include_directories(include
 
 add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
-#add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
-#add_executable(Mapping_Node src/Mapping_Node.cpp)
+add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
+add_executable(Mapping_Node src/Mapping_Node.cpp)
 #add_executable(Learning_Node src/Evolution_Node.cpp)
 
 #Obsolete Nodes
@@ -169,14 +169,14 @@ target_link_libraries(Sonic_Controller_Node
   ${catkin_LIBRARIES}
 	${OpenCV_LIBRARIES} 
 )
-#target_link_libraries(Diagnostic_Node
-#  ${catkin_LIBRARIES}
-#	${OpenCV_LIBRARIES} 
-#)
-#target_link_libraries(Mapping_Node
-#  ${catkin_LIBRARIES}
-#  ${OpenCV_LIBRARIES}
-#)
+target_link_libraries(Diagnostic_Node
+  ${catkin_LIBRARIES}
+	${OpenCV_LIBRARIES} 
+)
+target_link_libraries(Mapping_Node
+ ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}

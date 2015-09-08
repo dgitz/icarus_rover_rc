@@ -3,7 +3,6 @@
   
   
   <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node" output="screen">
-    <param name="diag_device" value="/dev/ttyUSB2"/>
-    <param name="baudrate" value="9600"/>   
+    <param name="diag_device" value="/dev/ttyUSB1"/> 
   </node>
 </launch>

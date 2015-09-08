@@ -9,8 +9,8 @@
     <param name="angle_min_deg" value = "-90"/>
     <param name="angle_max_deg" value = "90"/>
     <param name="angle_increment_deg" value = "45"/>
-    <param name="range_min_inch" value = "6"/>
-    <param name="range_max_inch" value = "255"/>
+    <param name="range_min_m" value = "0.1524"/>
+    <param name="range_max_m" value = "6.477"/>
   
     
   </node>

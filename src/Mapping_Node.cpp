@@ -20,7 +20,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
-#include "icarus_rover_rc/ICARUS_Diagnostic.h"
+//#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 #include <unistd.h>
 #include <linux/input.h>
 #include <fcntl.h>
@@ -58,6 +58,14 @@ void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 	q2.setRPY(0,0,0);
 	scan_transform.setRotation(q2);
 	scan_br.sendTransform(tf::StampedTransform(scan_transform,ros::Time::now(),"base_link","scan"));
+	
+	static tf::TransformBroadcaster laser_br;
+	tf::Transform laser_transform;
+	laser_transform.setOrigin(tf::Vector3(0.0,0.0,0.0));
+	tf::Quaternion q3;
+	q3.setRPY(0,0,0);
+	laser_transform.setRotation(q3);
+	laser_br.sendTransform(tf::StampedTransform(laser_transform,ros::Time::now(),"base_link","laser"));
 	/*
 	tf::TransformBroadcaster scan_broadcaster;
 	geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
@@ -81,10 +89,10 @@ void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 	cout << "Got a Scan" << endl;
 }
-void test_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg)
+/*void test_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg)
 {
 	cout << "Got a Diag." << endl;
-}
+}*/
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "Mapping_Node");
@@ -93,7 +101,7 @@ int main(int argc, char **argv)
   nh.getParam("Mode",Mode);
   
     
-  ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
+  //ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
   ros::Rate loop_rate(100);
   std::clock_t    start;
   ros::Publisher Pub_ICARUS_OccupancyGrid;  
@@ -119,12 +127,12 @@ int main(int argc, char **argv)
     cout << "Live Mode" << endl;
   }	
  
-  ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  //::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
   nav_msgs::OccupancyGrid OccupancyGrid;
-  ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
+  /*ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
   ICARUS_Diagnostic.System = ROVER;
   ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  ICARUS_Diagnostic.Component = MAPPING_NODE;
+  ICARUS_Diagnostic.Component = MAPPING_NODE;*/
 
 	while(ros::ok())
 	{
@@ -141,8 +149,8 @@ int main(int argc, char **argv)
 	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
             Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
              //ICARUS Diagnostics Publisher
-            ICARUS_Diagnostic.header.stamp = ros::Time::now();
-            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+            //ICARUS_Diagnostic.header.stamp = ros::Time::now();
+            //Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
 	    nav_msgs::Odometry Rover_Odometry;
 	    Rover_Odometry.header.stamp = ros::Time::now();
 	    Rover_Odometry.header.frame_id = "/odom";
@@ -158,19 +166,19 @@ int main(int argc, char **argv)
 	    ROS_INFO("ERROR:%s",ex.what());
             
             //ICARUS Diagnostics Publisher
-            ICARUS_Diagnostic.header.stamp = ros::Time::now();
+            /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
             ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
             ICARUS_Diagnostic.Level = FATAL;
             ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
             ICARUS_Diagnostic.Description = ex.what();
-            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
 	  }
   }
-  ICARUS_Diagnostic.header.stamp = ros::Time::now();
+  /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
   ICARUS_Diagnostic.Level = SEVERE;
   ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
   ICARUS_Diagnostic.Description = "Node Closed.";
-  Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
+  Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
   
 }

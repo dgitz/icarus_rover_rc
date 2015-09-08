@@ -3,6 +3,7 @@
 //Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/LaserScan.h>
+#include <tf/transform_broadcaster.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -17,8 +18,9 @@
 #include <termios.h>
 #include <unistd.h>
 #include "icarus_rover_rc/Definitions.h"
-//#include "icarus_rover_rc/ICARUS_Diagnostic.h"
+#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 
+#define PI 3.14159265359
 using namespace std;
 
  
@@ -26,8 +28,9 @@ double dtime = 0.0;
 int sonic_node_rate = 0.0;
 int ping_sensor_count = 0;
 int DEBUG_MODE = 0;
-int angle_min,angle_max,range_min,range_max,angle_increment;
-
+int angle_min,angle_max,angle_increment;
+double range_min = 0.0;
+double range_max = 0.0;
 //Communication Variables
 int token_index = 0;
 string SC_Device = "";
@@ -43,13 +46,22 @@ int SonarDistance_4 = 0;
 int SonarDistance_5 = 0;
 int hex2dec(char);
 int hex2dec(char,char);
-
+uint32_t sequence_counter = 0;
 
 int main(int argc, char** argv)
 {
 	ros::init(argc,argv,"Sonic_Controller");
 	ros::NodeHandle nh("~");
 	ros::Rate loop_rate(100);
+	ros::Publisher Pub_ICARUS_Sonic_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Sonic_Controller_Diagnostic",1000);
+  	icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+	ICARUS_Diagnostic.System = ROVER;
+  	ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+  	ICARUS_Diagnostic.Component = SONIC_CONTROLLER_NODE;
+	ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
+	ICARUS_Diagnostic.Level = INFORMATION;
+	ICARUS_Diagnostic.Diagnostic_Message = INITIALIZING;
+	Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	int INITIALIZED = 0;
 
   	//nh.getParam("target_count",target_count);
@@ -66,9 +78,9 @@ int main(int argc, char** argv)
   	nh.getParam("angle_min_deg",angle_min);
   	nh.getParam("angle_max_deg",angle_max);
   	nh.getParam("angle_increment_deg",angle_increment);
-  	nh.getParam("range_min_inch",range_min);
-  	nh.getParam("range_max_inch",range_max);
-	printf("Min Range: %d Max Range: %d",range_min,range_max);
+  	nh.getParam("range_min_m",range_min);
+  	nh.getParam("range_max_m",range_max);
+	printf("Min Range: %f Max Range: %f",range_min,range_max);
 	int sc_device;
   	struct termios oldtio,newtio;
   	int buffer_length = 255;
@@ -77,9 +89,9 @@ int main(int argc, char** argv)
   	char message[256];
   	int message_index = 0;
   	int res;
-  	int ping_distances[ping_sensor_count];
+  	float ping_distances[ping_sensor_count];
   	int ping_index = 0;
-  
+	
   	sc_device= open(SC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
   
  	if (sc_device  == -1)
@@ -124,15 +136,12 @@ int main(int argc, char** argv)
   	}
 
   	ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
-  	//ros::Publisher Pub_ICARUS_Sonic_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Sonic_Controller_Diagnostic",1000);
-  	//icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+	tf::TransformBroadcaster scan_broadcaster;
+  	
   	//ros::Rate loop_rate(sonic_node_rate);
 	std::clock_t    start;
   	sensor_msgs::LaserScan Sonar_Scan;
-  	/*ICARUS_Diagnostic.header.frame_id = "ICARUS_Sonic_Controller_Diagnostic";
- 	ICARUS_Diagnostic.System = ROVER;
-  	ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  	ICARUS_Diagnostic.Component = SONIC_CONTROLLER_NODE;*/
+
 	//LaserScan Sonar_Scan;
   	start = std::clock();
 
@@ -184,7 +193,7 @@ int main(int argc, char** argv)
 							//ping_distances[1] = value2;
 							//ping_distances[2] = value3;
 							in_message_ready = 1;
-							printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
+							//printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
 							
 						}
 						
@@ -200,7 +209,9 @@ int main(int argc, char** argv)
 
 			
 				Sonar_Scan.header.stamp = ros::Time::now();
-				Sonar_Scan.header.frame_id = "laser";
+				Sonar_Scan.header.frame_id = "/laser";
+				Sonar_Scan.header.seq = sequence_counter;
+				sequence_counter++;
 				Sonar_Scan.angle_min = (float)angle_min*3.145/180.0;
 				Sonar_Scan.angle_max = (float)angle_max*3.145/180.0;
 				Sonar_Scan.angle_increment = angle_increment*3.145/180.0;
@@ -209,11 +220,11 @@ int main(int argc, char** argv)
 				Sonar_Scan.scan_time = dtime;
 				Sonar_Scan.ranges.resize(ping_sensor_count);
 				
-				ping_distances[0] = SonarDistance_1;
-				ping_distances[1] = SonarDistance_2;
-				ping_distances[2] = SonarDistance_3;
-				ping_distances[3] = SonarDistance_4;
-				ping_distances[4] = SonarDistance_5;
+				ping_distances[0] = SonarDistance_1*0.0254;
+				ping_distances[1] = SonarDistance_2*0.0254;
+				ping_distances[2] = SonarDistance_3*0.0254;
+				ping_distances[3] = SonarDistance_4*0.0254;
+				ping_distances[4] = SonarDistance_5*0.0254;
 				
 				for(int j = 0; j < ping_sensor_count; j++)
 				{
@@ -221,16 +232,25 @@ int main(int argc, char** argv)
 					else if (ping_distances[j] > range_max) { ping_distances[j] = range_max; }
 					
 					Sonar_Scan.ranges[j] = ping_distances[j];
-					//Sonar_Scan.intensities[j] = ping_distances[j];//+100; 
+					//Sonar_Scan.ranges[j] = 3.5;
 				}
-				printf("Sonar D1: %d D2: %d D3: %d D4: %d D5: %d Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
+				printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
 				Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
+				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(00.0*PI/180.0);
+				geometry_msgs::TransformStamped scan_trans;
+				scan_trans.header.stamp = ros::Time::now();
+				scan_trans.header.frame_id = "base_link";
+				scan_trans.child_frame_id = "laser";
+				scan_trans.transform.translation.x = 0.0;
+				scan_trans.transform.translation.y = 0.0;
+				scan_trans.transform.translation.z = 0.3556;
+				scan_trans.transform.rotation = scan_quat;
+				scan_broadcaster.sendTransform(scan_trans);
 				
-				/*ICARUS_Diagnostic.header.stamp = ros::Time::now();
 				ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
 				ICARUS_Diagnostic.Level = NO_ERROR;
 				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-				Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);*/
+				Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 			}
 
 		}
@@ -238,11 +258,10 @@ int main(int argc, char** argv)
 		{
 			ROS_INFO("ERROR:%s",ex.what());
 			close(sc_device);
-			/*ICARUS_Diagnostic.header.stamp = ros::Time::now();
 			ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
 			ICARUS_Diagnostic.Level = FATAL;
 			ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-			Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);	*/
+			Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);	
 		}
 	}
 	close(sc_device);
