@@ -1,0 +1,15 @@
+<!--xml-->
+<launch>
+  <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
+    <param name="DEBUG_MODE" value="0"/>  
+	<param name="LOGGING_ENABLED" value="1"/>
+	<param name="Operation_Mode" value="SIM"/>
+  </node>
+  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" >
+    <param name="DEBUG_MODE" value="0"/>  
+	<param name="LOGGING_ENABLED" value="1"/>
+	<param name="Operation_Mode" value="SIM"/>
+  </node>
+
+ 
+</launch>

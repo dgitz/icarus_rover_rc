@@ -54,23 +54,23 @@ int current_gear = GEAR_PARK;
 //Position Variables
 float current_latitude = 0.0;
 float current_longitude = 0.0;
-double current_Northing = 0.0;
-double current_Easting = 0.0;
+double current_Northing_m = 0.0;
+double current_Easting_m = 0.0;
+double origin_Northing_m = 0.0;
+double origin_Easting_m = 0.0;
 double temp_Northing = 0.0;
 double temp_Easting = 0.0;
 float current_speed = 0.0;
 int current_speed_command = 0;
-int current_heading = 0;
-
+float current_Heading_deg = 0.0;
 //Other Variables
 
 int DEBUG_MODE= 0;
 int LOGGING_ENABLED = 0;
 double dtime = 0.0;
+string Operation_Mode = "";
 
-float fakepose_Northing = 282029.995015111;
-float fakepose_Easting = 4510207.599337020;
-float fakepose_Heading = 90.0;
+
 
 
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
@@ -92,14 +92,28 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 		std::string zone;
 		current_latitude = msg->latitude;
 		current_longitude = msg->longitude;
-		if((current_gear != GEAR_PARK) || (current_Northing == 0.0)) {	LLtoUTM(msg->latitude,msg->longitude,current_Northing,current_Easting,zone); }
+		if((current_gear != GEAR_PARK) || (current_Northing_m == 0.0)) 
+		{	
+			double temp_N_m;
+			double temp_E_m;
+			LLtoUTM(msg->latitude,msg->longitude,temp_N_m,temp_E_m,zone); 
+			current_Northing_m = temp_N_m-origin_Northing_m;
+			current_Easting_m = temp_E_m-origin_Easting_m;
+		}
 	}
 	
 }
 void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 {
-	current_heading = msg->heading;
+	current_Heading_deg = (float)msg->heading;
 	current_speed = msg->groundspeed;
+}
+void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
+{
+	//printf("x: %f y: %f head: %f\r\n",msg->x,msg->y,msg->theta);
+	current_Easting_m = msg->x;
+	current_Northing_m = msg->y;
+	current_Heading_deg = msg->theta*180.0/PI;
 }
 void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 {
@@ -171,6 +185,20 @@ int main(int argc, char **argv)
 	//nh.getParam("target_count",target_count);
 	nh.getParam("DEBUG_MODE",DEBUG_MODE);
 	nh.getParam("LOGGING_ENABLED",LOGGING_ENABLED);
+	nh.getParam("Operation_Mode",Operation_Mode); //Should be: SIM, LIVE
+	nh.getParam("Northing_Origin_m",origin_Northing_m);
+	
+	nh.getParam("Easting_Origin_m",origin_Easting_m);
+	if(DEBUG_MODE == 0)
+	{
+		current_Easting_m = origin_Easting_m;
+		current_Northing_m = origin_Northing_m;
+	}
+	else if(DEBUG_MODE == 1)
+	{
+		current_Easting_m = 0.0;
+		current_Northing_m = 0.0;
+	}
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
@@ -184,13 +212,29 @@ int main(int argc, char **argv)
 		ofstream out(filename);
 		out << "Time,GPS Valid,Armed,Gear,Drive_Command,Steer_Command,current_speed,current_latitude,current_longitude,current_heading,Northing,Easting" << endl;
 	}
-	ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
+	ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic;
+	ros::Subscriber Sub_Rover_Control;
+	ros::Subscriber GPS_State;
+	ros::Subscriber VFRHUD_State;
+	ros::Publisher Pub_Rover_RC;
+	ros::Publisher Pub_Rover_Pose;
+	ros::Subscriber Sub_Rover_Pose;
+	if(Operation_Mode == "LIVE")
+	{
+		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
+		Sub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("/joy",1000,ICARUS_Rover_Control_Callback);
+		GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
+		VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
+		Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
+		Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
+	}
+	else if(Operation_Mode == "SIM")
+	{
+		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
+		Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_SimRover_Pose_Callback);
+	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-	ros::Subscriber Sub_Rover_Control = nh.subscribe<sensor_msgs::Joy>("/joy",1000,ICARUS_Rover_Control_Callback);
-	ros::Subscriber GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
-	ros::Subscriber VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
-	ros::Publisher Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
-	ros::Publisher Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
+
 	ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
 	tf::TransformBroadcaster odom_broadcaster;
 	tf::TransformBroadcaster base_broadcaster;
@@ -211,149 +255,143 @@ int main(int argc, char **argv)
 	  	ros::spinOnce();
 		current_time = ros::Time::now();
 	  	loop_rate.sleep();
-		joystick_timeout_counter++;  //Increment Joystick Timeout Counter
-		if(joystick_timeout_counter > 50) 
-		{ 
-			//printf("Joystick Callback Timeout\r\n");// }
-			armed_state = DISARMED; 
-			ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-			ICARUS_Diagnostic.Level = CAUTION;
-			ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
-			ICARUS_Diagnostic.Description = "Joystick Callack Timeout";
-			Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-			
-		}
-	  	if(armed_state == ARMED)
-	  	{
-			if(DEBUG_MODE >= INFORMATION) { printf("Armed State: ARMED\r\n"); }
-		}
-		else if(armed_state == DISARMED)
+		if(Operation_Mode == "LIVE")
 		{
-			if(DEBUG_MODE >= INFORMATION) { printf("Armed State: DISARMED\r\n"); }
-			Steer_Command = STEER_CENTER;
-			Drive_Command = DRIVE_NEUTRAL;
-
-		}
-		else
-		{
-			printf("Armed State: UNKNOWN!!!\r\n");
-		}
-	  	try
-		{
-			
-
-			//for(int i = 0; i < 7; i++) { RC_Command.channel[i] = Steer_Command; }
-			RC_Command.channel[STEER_CHANNEL] = Steer_Command;
-			RC_Command.channel[DRIVE_CHANNEL] = Drive_Command;
-			//if(DEBUG_MODE == DEBUG) { Gps_Valid = 1; } //DEBUGGING ONLY
-			if(Gps_Valid == 1)
-			{
-				//cout << "Gear: " << current_gear << " Thr: " << Drive_Command << " Sp: " << current_speed << " GPS: " << Gps_Valid << " Lat: " << current_latitude << " Long: " << current_longitude << " Head: " << current_heading << endl;
-				//
-				struct timeval mytime;
-				gettimeofday(&mytime,NULL);
-				double cur_time = (double)(mytime.tv_sec + mytime.tv_usec/1000000.0);
-				
-				if(LOGGING_ENABLED == 1)
-				{
-					out << setprecision(16) << cur_time << "," << Gps_Valid << "," << armed_state << "," << current_gear << "," << Drive_Command << "," << Steer_Command << "," << current_speed << "," << current_latitude << "," << current_longitude << "," << current_heading << "," << current_Northing << "," << current_Easting <<  endl;
-				}
-				printf("T: %f Armed: %d Gear: %d Thr: %d St: %d Sp: %f GPS: %d Lat: %4.12f Long: %4.12f Head: %d N: %f E: %f\r\n",cur_time,armed_state,current_gear,Drive_Command,Steer_Command,current_speed,Gps_Valid,current_latitude,current_longitude,current_heading,current_Northing,current_Easting);
-				geometry_msgs::Pose2D cur_Pose;
-				cur_Pose.x = current_Easting;
-				cur_Pose.y = current_Northing;
-				cur_Pose.theta = current_heading;
-				Pub_Rover_Pose.publish(cur_Pose);
-				
-				geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(current_heading*PI/180.0);
-				geometry_msgs::TransformStamped odom_trans;
-				odom_trans.header.stamp = current_time;
-				odom_trans.header.frame_id = "map";
-				odom_trans.child_frame_id = "odom";
-				odom_trans.transform.translation.x = current_Easting;
-				odom_trans.transform.translation.y = current_Northing;
-				odom_trans.transform.translation.z = 0.0;
-				odom_trans.transform.rotation = odom_quat;
-				odom_broadcaster.sendTransform(odom_trans);
-				
-				geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(0.0);
-				geometry_msgs::TransformStamped base_trans;
-				base_trans.header.stamp = current_time;
-				base_trans.header.frame_id = "odom";
-				base_trans.child_frame_id = "base_link";
-				base_trans.transform.translation.x = 0.0;
-				base_trans.transform.translation.y = 0.0;
-				base_trans.transform.translation.z = -0.2794;
-				base_trans.transform.rotation = odom_quat;
-				base_broadcaster.sendTransform(base_trans);
-				
-				
-				nav_msgs::Odometry odom;
-				odom.header.stamp = current_time;
-				odom.header.frame_id = "odom";
-
-				//set the position
-				odom.pose.pose.position.x = current_Easting;
-				odom.pose.pose.position.y = current_Northing;
-				odom.pose.pose.position.z = 0.0;
-				odom.pose.pose.orientation = odom_quat;
-
-				//set the velocity
-				odom.child_frame_id = "base_link";
-				odom.twist.twist.linear.x = current_speed*sin(current_heading*PI/180.0);
-				odom.twist.twist.linear.y = current_speed*cos(current_heading*PI/180.0);
-				odom.twist.twist.angular.z = 0.0;
-
-				//publish the message
-				odom_pub.publish(odom);
-				
-				ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
-				ICARUS_Diagnostic.Level = INFORMATION;
-				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-				ICARUS_Diagnostic.Description = "GPS Position Available";
+			joystick_timeout_counter++;  //Increment Joystick Timeout Counter
+			if(joystick_timeout_counter > 50) 
+			{ 
+				//printf("Joystick Callback Timeout\r\n");// }
+				armed_state = DISARMED; 
+				ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+				ICARUS_Diagnostic.Level = CAUTION;
+				ICARUS_Diagnostic.Diagnostic_Message = DROPPING_PACKETS;
+				ICARUS_Diagnostic.Description = "Joystick Callack Timeout";
+				Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 				
 			}
-			/*else if(DEBUG_MODE == DEBUG)//DEBUGGING ONLY
+			if(armed_state == ARMED)
 			{
-				geometry_msgs::Pose2D cur_Pose;
-				cur_Pose.x = fakepose_Easting;
-				cur_Pose.y = fakepose_Northing;
-				cur_Pose.theta = fakepose_Heading;
-				Pub_Rover_Pose.publish(cur_Pose);
-				fakepose_Easting = fakepose_Easting + 0.1;
-				fakepose_Northing = fakepose_Northing + 0.1;
-				printf("Publishing FAKE POSE.\r\n");
-				
-			}*/
+				if(DEBUG_MODE >= INFORMATION) { printf("Armed State: ARMED\r\n"); }
+			}
+			else if(armed_state == DISARMED)
+			{
+				if(DEBUG_MODE >= INFORMATION) { printf("Armed State: DISARMED\r\n"); }
+				Steer_Command = STEER_CENTER;
+				Drive_Command = DRIVE_NEUTRAL;
+
+			}
 			else
 			{
-				ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
-				ICARUS_Diagnostic.Level = CAUTION;
-				ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-				ICARUS_Diagnostic.Description = "GPS Position Not Available";
+				printf("Armed State: UNKNOWN!!!\r\n");
 			}
-			//for(int i = 0; i < 8; i++) { RC_Command.channel[i] = Steer_Command; }
-			
-			Pub_Rover_RC.publish(RC_Command);
-			
-			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-     
-
-
-			  Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+			try
+			{
+				//for(int i = 0; i < 7; i++) { RC_Command.channel[i] = Steer_Command; }
+				RC_Command.channel[STEER_CHANNEL] = Steer_Command;
+				RC_Command.channel[DRIVE_CHANNEL] = Drive_Command;
+				if((DEBUG_MODE == DEBUG) and (Gps_Valid == 0)) 
+				{ 
+					Gps_Valid = 1; 
+					current_Northing_m = current_Northing_m + .005;
+					current_Easting_m = current_Easting_m;
+				} //DEBUGGING ONLY
+				if(Gps_Valid == 1)
+				{
+					//cout << "Gear: " << current_gear << " Thr: " << Drive_Command << " Sp: " << current_speed << " GPS: " << Gps_Valid << " Lat: " << current_latitude << " Long: " << current_longitude << " Head: " << current_heading << endl;
+					//
+					struct timeval mytime;
+					gettimeofday(&mytime,NULL);
+					double cur_time = (double)(mytime.tv_sec + mytime.tv_usec/1000000.0);
+					
+					if(LOGGING_ENABLED == 1)
+					{
+						out << setprecision(16) << cur_time << "," << Gps_Valid << "," << armed_state << "," << current_gear << "," << Drive_Command << "," << Steer_Command << "," << current_speed << "," << current_latitude << "," << current_longitude << "," << current_Heading_deg << "," << current_Northing_m << "," << current_Easting_m <<  endl;
+					}
+					printf("T: %f Armed: %d Gear: %d Thr: %d St: %d Sp: %f GPS: %d Lat: %4.12f Long: %4.12f Head: %f N: %f E: %f\r\n",cur_time,armed_state,current_gear,Drive_Command,Steer_Command,current_speed,Gps_Valid,current_latitude,current_longitude,current_Heading_deg,current_Northing_m,current_Easting_m);
+					geometry_msgs::Pose2D cur_Pose;
+					cur_Pose.x = current_Easting_m;
+					cur_Pose.y = current_Northing_m;
+					cur_Pose.theta = current_Heading_deg*PI/180.0;
+					Pub_Rover_Pose.publish(cur_Pose);
+					
+					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
+					ICARUS_Diagnostic.Level = INFORMATION;
+					ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+					ICARUS_Diagnostic.Description = "GPS Position Available";
+				}
+				else
+				{
+					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
+					ICARUS_Diagnostic.Level = CAUTION;
+					ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+					ICARUS_Diagnostic.Description = "GPS Position Not Available";
+				}
+				//for(int i = 0; i < 8; i++) { RC_Command.channel[i] = Steer_Command; }
+				
+				Pub_Rover_RC.publish(RC_Command);
+			}		
+			catch(const std::exception& ex)
+			{
+				ROS_INFO("ERROR:%s",ex.what());
+		  
+				//ICARUS Diagnostics Publisher
+				/*ICARUS_Diagnostic.header.stamp = ros::Time::now();
+				ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+				ICARUS_Diagnostic.Level = FATAL;
+				ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+				ICARUS_Diagnostic.Description = ex.what();
+				Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);*/
+			}
+		
 		}
-		catch(const std::exception& ex)
+		else if(Operation_Mode == "SIM")
 		{
-			ROS_INFO("ERROR:%s",ex.what());
-      
-			//ICARUS Diagnostics Publisher
-			/*ICARUS_Diagnostic.header.stamp = ros::Time::now();
-			ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-			ICARUS_Diagnostic.Level = FATAL;
-			ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-			ICARUS_Diagnostic.Description = ex.what();
-			Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);*/
 		}
+		/*geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.0);
+		geometry_msgs::TransformStamped odom_trans;
+		odom_trans.header.stamp = current_time;
+		odom_trans.header.frame_id = "map";
+		odom_trans.child_frame_id = "odom";
+		odom_trans.transform.translation.x = current_Easting_m;
+		odom_trans.transform.translation.y = current_Northing_m;
+		odom_trans.transform.translation.z = 0.0;
+		odom_trans.transform.rotation = odom_quat;
+		odom_broadcaster.sendTransform(odom_trans);*/
+		
+		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.);
+		geometry_msgs::TransformStamped base_trans;
+		base_trans.header.stamp = current_time;
+		base_trans.header.frame_id = "odom";
+		base_trans.child_frame_id = "base_link";
+		base_trans.transform.translation.x = current_Easting_m;
+		base_trans.transform.translation.y = current_Northing_m;
+		base_trans.transform.translation.z = -0.2794;
+		base_trans.transform.rotation = base_quat;
+		base_broadcaster.sendTransform(base_trans);
+		
+		
+		nav_msgs::Odometry odom;
+		odom.header.stamp = current_time;
+		odom.header.frame_id = "odom";
+
+		//set the position
+		odom.pose.pose.position.x = current_Easting_m;
+		odom.pose.pose.position.y = current_Northing_m;
+		odom.pose.pose.position.z = 0.0;
+		odom.pose.pose.orientation = base_quat;
+
+		//set the velocity
+		odom.child_frame_id = "base_link";
+		odom.twist.twist.linear.x = current_speed*sin(current_Heading_deg*PI/180.0);
+		odom.twist.twist.linear.y = current_speed*cos(current_Heading_deg*PI/180.0);
+		odom.twist.twist.angular.z = 0.0;
+
+		//publish the message
+		odom_pub.publish(odom);
+		
+		dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+	    Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+		
 	}
 	if(LOGGING_ENABLED == 1)
 	{

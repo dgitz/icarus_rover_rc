@@ -62,13 +62,13 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->System)
 			{
 				case ROVER:
-					printf("System: Rover ");
+					//printf("System: Rover ");
 					break;
 				case GROUND_STATION:
-					printf("System: Ground Station ");
+					//printf("System: Ground Station ");
 					break;
 				case REMOTE_CONTROL:
-					printf("System: Remote Control ");
+					//printf("System: Remote Control ");
 					break;
 				default:
 					break;
@@ -76,17 +76,17 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->SubSystem)
 			{
 				case ENTIRE_SYSTEM:
-					printf("Subystem: Entire System ");
+					///printf("Subystem: Entire System ");
 					break;
 				case ROBOT_CONTROLLER:
-					printf("Subsystem: Robot Controller ");
+					//printf("Subsystem: Robot Controller ");
 					break;
 				case MOTION_CONTROLLER:
-					printf("Subsystem: Motion Controller ");
+					//printf("Subsystem: Motion Controller ");
 					
 					break;
 				case SONIC_CONTROLLER:
-					printf("Subsystem: Sonic Controller ");
+					//printf("Subsystem: Sonic Controller ");
 					
 					break;
 				default:
@@ -95,36 +95,36 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->Component)
 			{
 				case ENTIRE_SUBSYSTEM:
-					printf("Component: Entire Subsystem ");
+					//printf("Component: Entire Subsystem ");
 					break;
 				case DIAGNOSTIC_NODE:
-					printf("Component: Diagnostic Node ");
+					//printf("Component: Diagnostic Node ");
 					break;
 				case NAVIGATION_NODE:
-					printf("Component: Navigation Node ");
+					//printf("Component: Navigation Node ");
 					time_last_Navigation_Node = ros::Time::now().toSec();
 					break;
 				case MOTION_CONTROLLER_NODE:
-					printf("Component: Motion Controller Node ");
+					//printf("Component: Motion Controller Node ");
 					time_last_MotionController_Node = ros::Time::now().toSec();
 					sprintf(buffer_mcnode,"$GH13%d%d%d%d%d%d%s*",msg->System,msg->SubSystem,msg->Component,msg->Diagnostic_Type,msg->Level,msg->Diagnostic_Message,msg->Description.c_str());
 					message_ready_mcnode = 1;
 					break;
 				case SONIC_CONTROLLER_NODE:
-					printf("Component: Sonic Controller Node ");
+					//printf("Component: Sonic Controller Node ");
 					time_last_SonicController_Node = ros::Time::now().toSec();
 					sprintf(buffer_scnode,"$GH13%d%d%d%d%d%d%s*",msg->System,msg->SubSystem,msg->Component,msg->Diagnostic_Type,msg->Level,msg->Diagnostic_Message,msg->Description.c_str());
 					message_ready_scnode = 1;
 					break;
 				case EVOLUTION_NODE:
-					printf("Component: Evolution Node ");
+					//printf("Component: Evolution Node ");
 					time_last_Evolution_Node = ros::Time::now().toSec();
 					break;
 				case TARGETING_NODE:
-					printf("Component: Targeting Node ");
+					//printf("Component: Targeting Node ");
 					break;
 				case MAPPING_NODE:
-					printf("Component: Mapping Node ");
+					//printf("Component: Mapping Node ");
 					time_last_Mapping_Node = ros::Time::now().toSec();
 					break;
 				default:
@@ -134,28 +134,28 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->Diagnostic_Type)
 			{
 				case NO_ERROR:
-					printf("Type: No Error ");
+					//printf("Type: No Error ");
 					break;
 				case ELECTRICAL:
-					printf("Type: Electrical ");
+					//printf("Type: Electrical ");
 					break;
 				case SOFTWARE:
-					printf("Type: Software ");
+					//printf("Type: Software ");
 					break;
 				case COMMUNICATIONS:
-					printf("Type: Communications ");
+					//printf("Type: Communications ");
 					break;
 				case SENSORS:
-					printf("Type: Sensors ");
+					//printf("Type: Sensors ");
 					break;
 				case ACTUATORS:
-					printf("Type: Actuators ");
+					//printf("Type: Actuators ");
 					break;
 				case DATA_STORAGE:
-					printf("Type: Data Storage ");
+					//printf("Type: Data Storage ");
 					break;
 				case GENERAL_ERROR:
-					printf("Type: General Error ");
+					//printf("Type: General Error ");
 					break;
 				default:
 					break;
@@ -164,25 +164,25 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->Level)
 			{
 				case NO_ERROR:
-					printf("Level: No Error\r\n");
+					//printf("Level: No Error\r\n");
 					break;
 				case DEBUG:
-					printf("Level: Debug\r\n");
+					//printf("Level: Debug\r\n");
 					break;
 				case INFORMATION:
-					printf("Level: Information\r\n");
+					//printf("Level: Information\r\n");
 					break;
 				case MINIMAL:
-					printf("Level: Minimal\r\n");
+					//printf("Level: Minimal\r\n");
 					break;
 				case CAUTION:
-					printf("Level: Caution\r\n");
+					//printf("Level: Caution\r\n");
 					break;
 				case SEVERE:
-					printf("Level: Severe\r\n");
+					//printf("Level: Severe\r\n");
 					break;
 				case FATAL:
-					printf("Level: Fatal\r\n");
+					//printf("Level: Fatal\r\n");
 					break;
 				default:
 					break;
@@ -190,27 +190,27 @@ void Diagnostic_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg
 			switch(msg->Diagnostic_Message)   
 			{
 				case NO_ERROR:
-					printf("Diag: No Error.\r\n");
+					//printf("Diag: No Error.\r\n");
 					break;
 				case INITIALIZING:
-					printf("Diag: Initializing.\r\n");
+					//printf("Diag: Initializing.\r\n");
 					break;
 				case DROPPING_PACKETS:
-					printf("Diag: Dropping Packets.\r\n");
+					//printf("Diag: Dropping Packets.\r\n");
 					break;
 				case MISSING_HEARTBEATS:
-					printf("Diag: Missing Heartbeats.\r\n");
+					//printf("Diag: Missing Heartbeats.\r\n");
 					break;
 				case DEVICE_NOT_AVAILABLE:
-					printf("Diag: Device Not Available.\r\n");
+					//printf("Diag: Device Not Available.\r\n");
 					break;
 				case GENERAL_ERROR:
-					printf("Diag: General Error\r\n");
+					//printf("Diag: General Error\r\n");
 					break;
 				default:
 					break;
 			}
-			printf("%s\r\n",msg->Description.c_str());
+			//printf("%s\r\n",msg->Description.c_str());
 		}
 	//}
 }
@@ -257,6 +257,7 @@ int main(int argc, char **argv)
  	if (dc_device  == -1)
   	{
     		printf("ERROR: UNABLE TO OPEN DIAG CONTROLLER PORT ON %s.",DIAG_device.c_str());
+			ros::shutdown();
   	}
   	else
   	{

@@ -33,6 +33,7 @@
 #define SENSORS 4
 #define ACTUATORS 5
 #define DATA_STORAGE 6
+#define REMOTE_CONTROL 7
 #define GENERAL_ERROR 9
 
 //Field 5: Level
@@ -99,12 +100,29 @@
 //Armed State Definitions
 #define ARMED 1
 #define DISARMED 0
-#endif
+
 
 //Gear Definitions
 #define GEAR_FORWARD 1
 #define GEAR_PARK    0
 #define GEAR_REVERSE -1
+
+//Naming Definitions
+#define DIAGNOSTICS_NODE_NAME "Diagnostics"
+#define DIAGNOSTICS_NODE_KEY "D"
+#define ROBOTCONTROLLER_NODE_NAME "Robot"
+#define ROBOTCONTROLLER_NODE_KEY "R"
+#define MOTIONCONTROLLER_NODE_NAME "Motion"
+#define MOTIONCONTROLLER_NODE_KEY "M"
+#define SONICCONTROLLER_NODE_NAME "Sonic"
+#define SONICCONTROLLER_NODE_KEY "S"
+#define NAVIGATIONCONTROLLER_NODE_NAME "Navigation"
+#define NAVIGATIONCONTROLLER_NODE_KEY "N"
+#define MAPPING_NODE_NAME "maPping"
+#define MAPPING_NODE_KEY "P"
+#define LEARNING_NODE_NAME "Learning"
+#define LEARNING_NODE_KEY "L"
+#endif
 
 
 

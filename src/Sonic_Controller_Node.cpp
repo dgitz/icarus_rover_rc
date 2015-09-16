@@ -31,6 +31,9 @@ int DEBUG_MODE = 0;
 int angle_min,angle_max,angle_increment;
 double range_min = 0.0;
 double range_max = 0.0;
+int points_per_beam = 1;
+double beam_width = 30.0;
+string Operation_Mode = "";
 //Communication Variables
 int token_index = 0;
 string SC_Device = "";
@@ -48,6 +51,10 @@ int hex2dec(char);
 int hex2dec(char,char);
 uint32_t sequence_counter = 0;
 
+void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
+{
+	//printf("t: %f\r\n",msg->scan_time);
+}
 int main(int argc, char** argv)
 {
 	ros::init(argc,argv,"Sonic_Controller");
@@ -65,22 +72,12 @@ int main(int argc, char** argv)
 	int INITIALIZED = 0;
 
   	//nh.getParam("target_count",target_count);
-  	nh.getParam("sc_device",SC_Device);
-  	printf("Got sc_device: %s\r\n",SC_Device.c_str());
-  	nh.getParam("baudrate",Baud_Rate);
-  	printf("Got baudrate: %d\r\n",Baud_Rate);
-  	nh.getParam("rate",sonic_node_rate);
-  	printf("Got Rate: %d\r\n",sonic_node_rate);
-  	nh.getParam("ping_sensor_count",ping_sensor_count);
-  	printf("Got Ping Sonar Count: %d\r\n",ping_sensor_count);
+  	
   	nh.getParam("DEBUG_MODE",DEBUG_MODE);
   	printf("Got Debug Mode: %d\r\n",DEBUG_MODE);
-  	nh.getParam("angle_min_deg",angle_min);
-  	nh.getParam("angle_max_deg",angle_max);
-  	nh.getParam("angle_increment_deg",angle_increment);
-  	nh.getParam("range_min_m",range_min);
-  	nh.getParam("range_max_m",range_max);
-	printf("Min Range: %f Max Range: %f",range_min,range_max);
+	nh.getParam("Operation_Mode",Operation_Mode); //Should be: SIM, LIVE
+
+	
 	int sc_device;
   	struct termios oldtio,newtio;
   	int buffer_length = 255;
@@ -91,51 +88,59 @@ int main(int argc, char** argv)
   	int res;
   	float ping_distances[ping_sensor_count];
   	int ping_index = 0;
+	if(Operation_Mode=="LIVE")
+	{
+		nh.getParam("sc_device",SC_Device);
+		printf("Got sc_device: %s\r\n",SC_Device.c_str());
+		nh.getParam("baudrate",Baud_Rate);
+		printf("Got baudrate: %d\r\n",Baud_Rate);
+		sc_device= open(SC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
+		nh.getParam("points_per_beam",points_per_beam);
+		nh.getParam("beam_width",beam_width);
+		if (sc_device  == -1)
+		{
+				printf("ERROR: UNABLE TO OPEN SONIC CONTROLLER PORT ON %s.",SC_Device.c_str());
+		}
+		else
+		{
+			printf("Serial Socket: %d\r\n",sc_device);
+			
+			INITIALIZED = 1;
+			tcgetattr(sc_device,&oldtio);
+			bzero(&newtio, sizeof(newtio));
+			newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
+			//newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
+			newtio.c_iflag = IGNPAR;
+			newtio.c_oflag = 0;
+			newtio.c_lflag = 0;
+			newtio.c_cc[VTIME]    = 1;
+			newtio.c_cc[VMIN]     = 5;
+			tcflush(sc_device, TCIFLUSH);
+			tcsetattr(sc_device,TCSANOW,&newtio);
+		}
+	}
+	ros::Publisher Pub_ICARUS_Sonar_Scan;
+	ros::Subscriber Sub_ICARUS_Sonar_Scan;
+	if(Operation_Mode == "LIVE")
+	{
 	
-  	sc_device= open(SC_Device.c_str(),O_RDWR | O_NOCTTY | O_NONBLOCK);
-  
- 	if (sc_device  == -1)
-  	{
-    		printf("ERROR: UNABLE TO OPEN SONIC CONTROLLER PORT ON %s.",SC_Device.c_str());
-  	}
-  	else
-  	{
-		printf("Serial Socket: %d\r\n",sc_device);
-		/*tcgetattr(sc_device,&oldtio);
-	  	bzero(&newtio, sizeof(newtio));
-	  	cfsetospeed(&newtio, (speed_t)B115200);
-		cfsetispeed(&newtio, (speed_t)B115200);
-		newtio.c_cflag &= ~PARENB;
-		newtio.c_cflag &= ~CSTOPB;
-		newtio.c_cflag &= ~CSIZE;
-		newtio.c_cflag |= CS8;
-		newtio.c_cflag &= CRTSCTS;
-		newtio.c_cflag |= CREAD | CLOCAL;
-		newtio.c_cc[VMIN] = 1;
-		newtio.c_cc[VTIME] = 5;
-		cfmakeraw(&newtio);
-	  	tcflush(sc_device, TCIFLUSH);
-	  	tcsetattr(sc_device,TCSANOW,&newtio);*/
-		
+		nh.getParam("rate",sonic_node_rate);
+		printf("Got Rate: %d\r\n",sonic_node_rate);
+		nh.getParam("ping_sensor_count",ping_sensor_count);
+		printf("Got Ping Sonar Count: %d\r\n",ping_sensor_count);
+		nh.getParam("angle_min_deg",angle_min);
+		nh.getParam("angle_max_deg",angle_max);
+		nh.getParam("angle_increment_deg",angle_increment);
+		nh.getParam("range_min_m",range_min);
+		nh.getParam("range_max_m",range_max);
+		printf("Min Range: %f Max Range: %f",range_min,range_max);
+		Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
+	}
+	else if(Operation_Mode == "SIM")
+	{
 		INITIALIZED = 1;
-		tcgetattr(sc_device,&oldtio);
-	    bzero(&newtio, sizeof(newtio));
-	    newtio.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-        //newtio.c_cflag &= ~(IXON | IXOFF | IXANY);
-	    newtio.c_iflag = IGNPAR;
-	    newtio.c_oflag = 0;
-	    newtio.c_lflag = 0;
-	    newtio.c_cc[VTIME]    = 1;
-	    newtio.c_cc[VMIN]     = 5;
-                  // 0.5 seconds read timeout
-
-				  
-
-	    tcflush(sc_device, TCIFLUSH);
-	    tcsetattr(sc_device,TCSANOW,&newtio);
-  	}
-
-  	ros::Publisher Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
+		Sub_ICARUS_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_SimSonar_Scan_Callback);
+	}
 	tf::TransformBroadcaster scan_broadcaster;
   	
   	//ros::Rate loop_rate(sonic_node_rate);
@@ -151,91 +156,117 @@ int main(int argc, char** argv)
 		loop_rate.sleep();
 		try
 		{
-			char buf = 0;
-			char response[255];
-			int spot = 0;
-			memset(response,0,sizeof response);
-			in_message_completed = 0;
-			int length = 0;
-			int temp_counter = 0;
-			
-			in_message_started = 0;
-			in_message_completed = 0;
-			in_message_ready = 0;
-			while(!in_message_completed)
+			if(Operation_Mode == "LIVE")
 			{
+				char buf = 0;
+				char response[255];
+				int spot = 0;
 				memset(response,0,sizeof response);
-				res = read(sc_device,&response,14);
-				//printf("Read %d bytes\r\n",res);
-				if (res > 0)
+				in_message_completed = 0;
+				int length = 0;
+				int temp_counter = 0;
+				
+				in_message_started = 0;
+				in_message_completed = 0;
+				in_message_ready = 0;
+				while(!in_message_completed)
 				{
-					for(int i = 0; i < res; i++)
+					memset(response,0,sizeof response);
+					res = read(sc_device,&response,14);
+					//printf("Read %d bytes\r\n",res);
+					if (res > 0)
 					{
-						//printf("%c\r\n",response[i]);
-					}
-					for(int i = 0; i < res; i++)
-					{
-						if ((response[i]   == 'A') and
-							(response[i+1] == 'B') and
-							(response[i+2] == '1') and
-							(response[i+3] == '2'))
+						for(int i = 0; i < res; i++)
 						{
-							for(int j = i; j < res; j++)
+							//printf("%c\r\n",response[i]);
+						}
+						for(int i = 0; i < res; i++)
+						{
+							if ((response[i]   == 'A') and
+								(response[i+1] == 'B') and
+								(response[i+2] == '1') and
+								(response[i+3] == '2'))
 							{
-								//printf("%c\r\n",response[j]);
+								for(int j = i; j < res; j++)
+								{
+									//printf("%c\r\n",response[j]);
+								}
+								SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
+								SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
+								SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
+								SonarDistance_4 = hex2dec(response[i+10],response[i+11]);
+								SonarDistance_5 = hex2dec(response[i+12],response[i+13]);
+								//ping_distances[0] = value1;
+								//ping_distances[1] = value2;
+								//ping_distances[2] = value3;
+								in_message_ready = 1;
+								//printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
+								
 							}
-							SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
-							SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
-							SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
-							SonarDistance_4 = hex2dec(response[i+10],response[i+11]);
-							SonarDistance_5 = hex2dec(response[i+12],response[i+13]);
-							//ping_distances[0] = value1;
-							//ping_distances[1] = value2;
-							//ping_distances[2] = value3;
-							in_message_ready = 1;
-							//printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
 							
 						}
-						
 					}
+					in_message_completed = 1;
 				}
-				in_message_completed = 1;
-			}
 
-			if((in_message_ready == 1) and (in_message_completed == 1))
-			{
-				dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-				start = std::clock();
-
-			
-				Sonar_Scan.header.stamp = ros::Time::now();
-				Sonar_Scan.header.frame_id = "/laser";
-				Sonar_Scan.header.seq = sequence_counter;
-				sequence_counter++;
-				Sonar_Scan.angle_min = (float)angle_min*3.145/180.0;
-				Sonar_Scan.angle_max = (float)angle_max*3.145/180.0;
-				Sonar_Scan.angle_increment = angle_increment*3.145/180.0;
-				Sonar_Scan.range_min = range_min;
-				Sonar_Scan.range_max = range_max;
-				Sonar_Scan.scan_time = dtime;
-				Sonar_Scan.ranges.resize(ping_sensor_count);
-				
-				ping_distances[0] = SonarDistance_1*0.0254;
-				ping_distances[1] = SonarDistance_2*0.0254;
-				ping_distances[2] = SonarDistance_3*0.0254;
-				ping_distances[3] = SonarDistance_4*0.0254;
-				ping_distances[4] = SonarDistance_5*0.0254;
-				
-				for(int j = 0; j < ping_sensor_count; j++)
+				if((in_message_ready == 1) and (in_message_completed == 1))
 				{
-					if (ping_distances[j] < range_min) { ping_distances[j] = range_min; }
-					else if (ping_distances[j] > range_max) { ping_distances[j] = range_max; }
+					dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+					start = std::clock();
+
+				
+					Sonar_Scan.header.stamp = ros::Time::now();
+					Sonar_Scan.header.frame_id = "/laser";
+					Sonar_Scan.header.seq = sequence_counter;
+					sequence_counter++;
+					Sonar_Scan.angle_min = (float)(angle_min-beam_width/2.0)*PI/180.0;
+					Sonar_Scan.angle_max = (float)(angle_max+beam_width/2.0)*PI/180.0;
+					Sonar_Scan.angle_increment = ((Sonar_Scan.angle_max-Sonar_Scan.angle_min)/(ping_sensor_count*points_per_beam));
+					Sonar_Scan.range_min = range_min;
+					Sonar_Scan.range_max = range_max;
+					Sonar_Scan.scan_time = dtime;
+					Sonar_Scan.ranges.resize(ping_sensor_count*points_per_beam);
 					
-					Sonar_Scan.ranges[j] = ping_distances[j];
-					//Sonar_Scan.ranges[j] = 3.5;
+					ping_distances[0] = 100.0;//SonarDistance_1*0.0254;
+					ping_distances[1] = 100.0;//SonarDistance_2*0.0254;
+					ping_distances[2] = 2.5;//100.0;//SonarDistance_3*0.0254;
+					ping_distances[3] = 100.0;//SonarDistance_4*0.0254;
+					ping_distances[4] = 100.0;//SonarDistance_5*0.0254;
+					
+					for(int j = 0; j < ping_sensor_count; j++)
+					{
+						if (ping_distances[j] < range_min) { ping_distances[j] = range_min; }
+						else if (ping_distances[j] > range_max) { ping_distances[j] = range_max; }
+						for(int k = j*points_per_beam; k < (j+1)*points_per_beam;k++)
+						{
+							Sonar_Scan.ranges[k] = ping_distances[j];
+						}
+						
+						
+						
+						//Sonar_Scan.ranges[j] = 3.5;
+					}
+					printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
+					Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
+					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(00.0*PI/180.0);
+					geometry_msgs::TransformStamped scan_trans;
+					scan_trans.header.stamp = ros::Time::now();
+					scan_trans.header.frame_id = "base_link";
+					scan_trans.child_frame_id = "laser";
+					scan_trans.transform.translation.x = 0.0;
+					scan_trans.transform.translation.y = 0.0;
+					scan_trans.transform.translation.z = 0.3556;
+					scan_trans.transform.rotation = scan_quat;
+					scan_broadcaster.sendTransform(scan_trans);
+					
+					ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
+					ICARUS_Diagnostic.Level = NO_ERROR;
+					ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+					Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 				}
-				printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
-				Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
+			}
+			else if(Operation_Mode=="SIM")
+			{
 				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(00.0*PI/180.0);
 				geometry_msgs::TransformStamped scan_trans;
 				scan_trans.header.stamp = ros::Time::now();
@@ -246,25 +277,26 @@ int main(int argc, char** argv)
 				scan_trans.transform.translation.z = 0.3556;
 				scan_trans.transform.rotation = scan_quat;
 				scan_broadcaster.sendTransform(scan_trans);
-				
-				ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
-				ICARUS_Diagnostic.Level = NO_ERROR;
-				ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-				Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 			}
 
 		}
 		catch(const std::exception& ex)
 		{
 			ROS_INFO("ERROR:%s",ex.what());
-			close(sc_device);
+			if(Operation_Mode=="LIVE")
+			{
+				close(sc_device);
+			}
 			ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
 			ICARUS_Diagnostic.Level = FATAL;
 			ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
 			Pub_ICARUS_Sonic_Controller_Diagnostic.publish(ICARUS_Diagnostic);	
 		}
 	}
-	close(sc_device);
+	if(Operation_Mode=="LIVE")
+	{
+		close(sc_device);
+	}
 
 }
 
