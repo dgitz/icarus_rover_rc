@@ -10,5 +10,5 @@ struct grid_cell{
 };
 
 int get_index_from_cell(int x, int y);
-grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value);
+grid_cell find_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value);
 #endif

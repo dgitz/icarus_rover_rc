@@ -45,10 +45,10 @@ bool map_initialized = false;
 int grid_width = 13; //Cell Count, should be odd
 int grid_height = 9; //Cell Count, should be odd
 double grid_size = 5.0; //Meters
-double bottom_left_X = -1.0*grid_size*grid_width/2.0;
-double bottom_left_Y = -1.0*grid_size*grid_height/2.0;
-double top_right_X = 1.0*grid_size*grid_width/2.0;
-double top_right_Y = 1.0*grid_size*grid_height/2.0;
+double bottom_left_X = (-1.0*grid_size*grid_width/2.0);
+double bottom_left_Y = (-1.0*grid_size*grid_height/2.0);
+double top_right_X = (1.0*grid_size*grid_width/2.0);
+double top_right_Y = (1.0*grid_size*grid_height/2.0);
 
 
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
@@ -69,14 +69,15 @@ int main(int argc, char **argv)
   cell_origin.X = 0.0;
   cell_origin.Y = 0.0;
   cell_origin.index = get_index_from_cell(cell_origin.x,cell_origin.y);
-  for (int i = -6; i < 6; i++)
+  printf("bx: %f by: %f tx: %f ty: %f\r\n",bottom_left_X,bottom_left_Y,top_right_X,top_right_Y);
+  for (int i = 0; i <= 0; i++)
   {
-	for(int j = -4; j < 4; j++)
+	for(int j = -60; j <= 60; j++)
 	{
-		double X = i * grid_width;
-		double Y = j * grid_height;
+		double X = i * grid_size/8.0;
+		double Y = j * grid_size/8.0;
 		grid_cell cell;
-		cell = update_cell( cell, cell_origin,X, Y,0);
+		cell = find_cell( cell, cell_origin,X, Y,0);
 		printf("X: %f Y: %f x: %d y: %d stat: %d\r\n",X,Y,cell.x,cell.y,cell.status);
 	}
   }
@@ -153,7 +154,7 @@ int get_index_from_cell(int x, int y)
 	x_index_calc = x+floor(grid_width/2.0);
 	return y_index_calc + x_index_calc;
 }
-grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value)
+grid_cell find_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value)
 {
 	grid_cell new_cell;
 	new_cell.X = X;
@@ -170,7 +171,7 @@ grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y,
 	}
 	else
 	{
-		new_cell.x = floor((new_cell.X-map_origin.X)/grid_size);
+		new_cell.x = floor((new_cell.X-map_origin.X+grid_size/2.0)/grid_size);
 	}
 	if (new_cell.Y < bottom_left_Y)
 	{
@@ -184,8 +185,10 @@ grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y,
 	}
 	else
 	{
-		new_cell.y = floor((new_cell.Y-map_origin.Y)/grid_size);
+		new_cell.y = floor((map_origin.Y-new_cell.Y+grid_size/2.0)/grid_size);
 	}
+	if(new_cell.y > grid_height/2.0) { new_cell.y = floor(grid_height/2.0); }
+	if(new_cell.x > grid_width/2.0) { new_cell.x = floor(grid_width/2.0); }
 	new_cell.status = 1;
 	return new_cell;
 }
