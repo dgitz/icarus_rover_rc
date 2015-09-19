@@ -5,13 +5,11 @@ project(icarus_rover_rc)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
   image_transport
   roscpp
   std_msgs
   geometry_msgs
   sensor_msgs
-
   #usb_cam
   message_generation
   tf

@@ -1,10 +1,10 @@
 //Includes all the headers necessary to use the most common public pieces of the ROS system.
 #include <ros/ros.h>
-//Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
 #include <geometry_msgs/Pose2D.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <unistd.h>
+#include "icarus_rover_rc/Mapping_Node.h"
 #include "icarus_rover_rc/Definitions.h"
 //#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 #include <unistd.h>
@@ -31,74 +32,55 @@ using namespace std;
 
 //Operation Variables
 string Mode = "";
+struct grid_cell cell_origin;
+
+
 
 //Program Variables
 double dtime = 0.0;
 double Pose_X;
 double Pose_Y;
 double Pose_Theta;
+bool map_initialized = false;
+int grid_width = 13; //Cell Count, should be odd
+int grid_height = 9; //Cell Count, should be odd
+double grid_size = 5.0; //Meters
+double bottom_left_X = -1.0*grid_size*grid_width/2.0;
+double bottom_left_Y = -1.0*grid_size*grid_height/2.0;
+double top_right_X = 1.0*grid_size*grid_width/2.0;
+double top_right_Y = 1.0*grid_size*grid_height/2.0;
+
+
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-
-	static tf::TransformBroadcaster odom_br;
-	tf::Transform transform;
-	transform.setOrigin(tf::Vector3(msg->x,msg->y,0.0));
-	tf::Quaternion q;
-	q.setRPY(0.0,0.0,msg->theta);
-	transform.setRotation(q);
-	odom_br.sendTransform(tf::StampedTransform(transform,ros::Time::now(),"base_link","odom"));
-	Pose_X = msg->x;
-	Pose_Y = msg->y;
-	Pose_Theta = msg->theta;
-	
-	static tf::TransformBroadcaster scan_br;
-	tf::Transform scan_transform;
-	scan_transform.setOrigin(tf::Vector3(0.0,0.0,0.0));
-	tf::Quaternion q2;
-	q2.setRPY(0,0,0);
-	scan_transform.setRotation(q2);
-	scan_br.sendTransform(tf::StampedTransform(scan_transform,ros::Time::now(),"base_link","scan"));
-	
-	static tf::TransformBroadcaster laser_br;
-	tf::Transform laser_transform;
-	laser_transform.setOrigin(tf::Vector3(0.0,0.0,0.0));
-	tf::Quaternion q3;
-	q3.setRPY(0,0,0);
-	laser_transform.setRotation(q3);
-	laser_br.sendTransform(tf::StampedTransform(laser_transform,ros::Time::now(),"base_link","laser"));
-	/*
-	tf::TransformBroadcaster scan_broadcaster;
-	geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
-	geometry_msgs::TransformStamped scan_trans;
-	scan_trans.header.stamp = ros::Time::now();
-	scan_trans.header.frame_id = "/scan";
-	scan_trans.child_frame_id = "/base_link";
-	scan_trans.transform.translation.x = 0.0;
-	scan_trans.transform.translation.y = 0.0;
-	scan_trans.transform.translation.z = -.0;
-	scan_trans.transform.rotation = scan_quat;
-	scan_broadcaster.sendTransform(scan_trans);
-	*/
-	tf::TransformBroadcaster scan_broadcaster;
-	//scan_broadcaster.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0,0,0,1),tf::Vector3(0.0,0.0,0.2)),
-	//	ros::Time::now(),"/base_link","/scan"));
-
 	printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
 void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 	cout << "Got a Scan" << endl;
 }
-/*void test_Callback(const icarus_rover_rc::ICARUS_Diagnostic::ConstPtr& msg)
-{
-	cout << "Got a Diag." << endl;
-}*/
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "Mapping_Node");
   ros::NodeHandle nh("~");
-  
-  nh.getParam("Mode",Mode);
+  cell_origin.x = 0;
+  cell_origin.y = 0;
+  cell_origin.X = 0.0;
+  cell_origin.Y = 0.0;
+  cell_origin.index = get_index_from_cell(cell_origin.x,cell_origin.y);
+  for (int i = -6; i < 6; i++)
+  {
+	for(int j = -4; j < 4; j++)
+	{
+		double X = i * grid_width;
+		double Y = j * grid_height;
+		grid_cell cell;
+		cell = update_cell( cell, cell_origin,X, Y,0);
+		printf("X: %f Y: %f x: %d y: %d stat: %d\r\n",X,Y,cell.x,cell.y,cell.status);
+	}
+  }
+  nh.getParam("Operation_Mode",Mode);
   
     
   //ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
@@ -109,7 +91,7 @@ int main(int argc, char **argv)
   ros::Subscriber Sub_Rover_Pose;
   ros::Subscriber Sub_Sonar_Scan;
 
- if(Mode.compare("Sim") == 0)
+ if(Mode.compare("SIM") == 0)
   {
     Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
     Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
@@ -118,7 +100,7 @@ int main(int argc, char **argv)
     Pub_ICARUS_Rover_Odom = nh.advertise<nav_msgs::Odometry>("ICARUS_SimRover_Odom",1000);
     cout << "Sim Mode" << endl;
   }
-  else if(Mode.compare("Live") == 0)
+  else if(Mode.compare("LIVE") == 0)
   {
     Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
     Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
@@ -141,29 +123,17 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		loop_rate.sleep();
 		
-		
-	
-	  try
-	  {
-	    
-	    dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-            Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
-             //ICARUS Diagnostics Publisher
-            //ICARUS_Diagnostic.header.stamp = ros::Time::now();
-            //Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);
-	    nav_msgs::Odometry Rover_Odometry;
-	    Rover_Odometry.header.stamp = ros::Time::now();
-	    Rover_Odometry.header.frame_id = "/odom";
-	    Rover_Odometry.pose.pose.position.x = Pose_X;
-	    Rover_Odometry.pose.pose.position.y = Pose_Y;
-	    Rover_Odometry.pose.pose.position.z = 0.0;
-	    geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(Pose_Theta);
-	    Rover_Odometry.pose.pose.orientation = odom_quat;
-	    Pub_ICARUS_Rover_Odom.publish(Rover_Odometry);
-	  }
-	  catch(const std::exception& ex)
-	  {
-	    ROS_INFO("ERROR:%s",ex.what());
+		//printf("bx: %f by: %f tx: %f ty: %f\r\n",bottom_left_x,bottom_left_y,top_right_x,top_right_y);
+		try
+		{
+
+			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+			//Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
+			
+		}
+		catch(const std::exception& ex)
+		{
+			ROS_INFO("ERROR:%s",ex.what());
             
             //ICARUS Diagnostics Publisher
             /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
@@ -172,13 +142,67 @@ int main(int argc, char **argv)
             ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
             ICARUS_Diagnostic.Description = ex.what();
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
-	  }
-  }
+		}
+	}
+}
+int get_index_from_cell(int x, int y)
+{
+	double x_index_calc; 
+	double y_index_calc;
+	y_index_calc = (y+floor(grid_height/2.0))*grid_width;
+	x_index_calc = x+floor(grid_width/2.0);
+	return y_index_calc + x_index_calc;
+}
+grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value)
+{
+	grid_cell new_cell;
+	new_cell.X = X;
+	new_cell.Y = Y;
+	if (new_cell.X < bottom_left_X)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else if(new_cell.X > top_right_X)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else
+	{
+		new_cell.x = floor((new_cell.X-map_origin.X)/grid_size);
+	}
+	if (new_cell.Y < bottom_left_Y)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else if(new_cell.Y > top_right_Y)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else
+	{
+		new_cell.y = floor((new_cell.Y-map_origin.Y)/grid_size);
+	}
+	new_cell.status = 1;
+	return new_cell;
+}
+
+/*
+int grid_width = 11; //Cell Count, should be odd
+int grid_height = 11; //Cell Count, should be odd
+double grid_size = 5.0; //Meters
+double bottom_left_x = -1.0*grid_size*grid_width/2.0;
+double bottom_left_y = -1.0*grid_size*grid_height/2.0;
+double top_right_x = 1.0*grid_size*grid_width/2.0;
+double top_right_y = 1.0*grid_size*grid_height/2.0;
+*/
   /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
   ICARUS_Diagnostic.Level = SEVERE;
   ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
   ICARUS_Diagnostic.Description = "Node Closed.";
   Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
-  
-}
+

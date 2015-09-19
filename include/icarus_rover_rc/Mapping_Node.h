@@ -1,24 +1,14 @@
-#include "ros/ros.h"
-#include "sensor_msgs/LaserScan.h"
-#include "std_msgs/Float64.h"
-#include "nav_msgs/GetMap.h"
-#include "tf/transform_listener.h"
-#include "tf/transform_broadcaster.h"
-#include "message_filters/subscriber.h"
-#include "tf/message_filter.h"
-
-#include "gmapping/gridfastslam/gridslamprocessor.h"
-#include "gmapping/sensor/sensor_base/sensor.h"
-
-#include <boost/thread.hpp>
-
-class SlamGMapping
-{
-  public:
-    SlamGMapping();
-    ~SlamGMapping();
-
-    
-  private:
-    
+#ifndef __MAPPINGNODE_INCLUDED__   
+#define __MAPPINGNODE_INCLUDED__
+struct grid_cell{
+	int index;
+	int x;  //Grid coordinates
+	int y;  //Grid coordinates
+	double X;  //Real-world coordinates, Meters
+	double Y;  //Real-world coordinates, Meters
+	int status;  //1 if it is updated, 0 if not.
 };
+
+int get_index_from_cell(int x, int y);
+grid_cell update_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value);
+#endif

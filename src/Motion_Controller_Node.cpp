@@ -18,8 +18,6 @@
 //#include <gps_common/conversions.h>
 #include "icarus_rover_rc/Definitions.h"
 #include "icarus_rover_rc/conversions.h"
-#include "icarus_rover_rc/ICARUS_Probe_Status.h"
-#include "icarus_rover_rc/ICARUS_Probe_Command.h"
 #include "icarus_rover_rc/RC.h"
 #include "icarus_rover_rc/VFR_HUD.h"
 #include "icarus_rover_rc/ICARUS_Diagnostic.h"
@@ -97,16 +95,22 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 			double temp_N_m;
 			double temp_E_m;
 			LLtoUTM(msg->latitude,msg->longitude,temp_N_m,temp_E_m,zone); 
-			current_Northing_m = temp_N_m-origin_Northing_m;
-			current_Easting_m = temp_E_m-origin_Easting_m;
+			if(DEBUG_MODE == 0)
+			{
+				current_Northing_m = temp_N_m-origin_Northing_m;
+				current_Easting_m = temp_E_m-origin_Easting_m;
+			}
 		}
 	}
 	
 }
 void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 {
-	current_Heading_deg = (float)msg->heading;
-	current_speed = msg->groundspeed;
+	if(DEBUG_MODE == 0)
+	{
+		current_Heading_deg = (float)msg->heading;
+		current_speed = msg->groundspeed;
+	}
 }
 void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
@@ -292,8 +296,9 @@ int main(int argc, char **argv)
 				if((DEBUG_MODE == DEBUG) and (Gps_Valid == 0)) 
 				{ 
 					Gps_Valid = 1; 
-					current_Northing_m = current_Northing_m + .005;
-					current_Easting_m = current_Easting_m;
+					current_Northing_m = 0.0;//current_Northing_m + .01;
+					current_Easting_m = current_Easting_m + .01;//0.0;
+					current_Heading_deg = 0.0;
 				} //DEBUGGING ONLY
 				if(Gps_Valid == 1)
 				{
@@ -347,24 +352,24 @@ int main(int argc, char **argv)
 		else if(Operation_Mode == "SIM")
 		{
 		}
-		/*geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.0);
-		geometry_msgs::TransformStamped odom_trans;
+		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
+		/*geometry_msgs::TransformStamped odom_trans;
 		odom_trans.header.stamp = current_time;
 		odom_trans.header.frame_id = "map";
 		odom_trans.child_frame_id = "odom";
-		odom_trans.transform.translation.x = current_Easting_m;
-		odom_trans.transform.translation.y = current_Northing_m;
+		odom_trans.transform.translation.x = current_Northing_m;
+		odom_trans.transform.translation.y = current_Easting_m;
 		odom_trans.transform.translation.z = 0.0;
 		odom_trans.transform.rotation = odom_quat;
 		odom_broadcaster.sendTransform(odom_trans);*/
 		
-		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.);
+		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(0.0);
 		geometry_msgs::TransformStamped base_trans;
 		base_trans.header.stamp = current_time;
-		base_trans.header.frame_id = "odom";
+		base_trans.header.frame_id = "map";
 		base_trans.child_frame_id = "base_link";
-		base_trans.transform.translation.x = current_Easting_m;
-		base_trans.transform.translation.y = current_Northing_m;
+		base_trans.transform.translation.x = current_Northing_m;
+		base_trans.transform.translation.y = current_Easting_m;
 		base_trans.transform.translation.z = -0.2794;
 		base_trans.transform.rotation = base_quat;
 		base_broadcaster.sendTransform(base_trans);
@@ -375,10 +380,10 @@ int main(int argc, char **argv)
 		odom.header.frame_id = "odom";
 
 		//set the position
-		odom.pose.pose.position.x = current_Easting_m;
+		/*odom.pose.pose.position.x = current_Easting_m;
 		odom.pose.pose.position.y = current_Northing_m;
 		odom.pose.pose.position.z = 0.0;
-		odom.pose.pose.orientation = base_quat;
+		odom.pose.pose.orientation = odom_quat;
 
 		//set the velocity
 		odom.child_frame_id = "base_link";
@@ -387,7 +392,8 @@ int main(int argc, char **argv)
 		odom.twist.twist.angular.z = 0.0;
 
 		//publish the message
-		odom_pub.publish(odom);
+		odom_pub.publish(odom);*/
+
 		
 		dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
 	    Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);

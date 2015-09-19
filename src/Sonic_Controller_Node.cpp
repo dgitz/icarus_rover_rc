@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 					}
 					printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
 					Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
-					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(00.0*PI/180.0);
+					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
 					geometry_msgs::TransformStamped scan_trans;
 					scan_trans.header.stamp = ros::Time::now();
 					scan_trans.header.frame_id = "base_link";
@@ -267,7 +267,7 @@ int main(int argc, char** argv)
 			}
 			else if(Operation_Mode=="SIM")
 			{
-				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(00.0*PI/180.0);
+				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
 				geometry_msgs::TransformStamped scan_trans;
 				scan_trans.header.stamp = ros::Time::now();
 				scan_trans.header.frame_id = "base_link";
