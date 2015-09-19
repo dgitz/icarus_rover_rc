@@ -18,8 +18,6 @@
 //#include <gps_common/conversions.h>
 #include "icarus_rover_rc/Definitions.h"
 #include "icarus_rover_rc/conversions.h"
-#include "icarus_rover_rc/ICARUS_Probe_Status.h"
-#include "icarus_rover_rc/ICARUS_Probe_Command.h"
 #include "icarus_rover_rc/RC.h"
 #include "icarus_rover_rc/VFR_HUD.h"
 #include "icarus_rover_rc/ICARUS_Diagnostic.h"

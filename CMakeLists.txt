@@ -5,16 +5,17 @@ project(icarus_rover_rc)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
   image_transport
   roscpp
   std_msgs
   geometry_msgs
   sensor_msgs
-
+  costmap_2d
   #usb_cam
   message_generation
   tf
+  nav_core
+  nav_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -92,7 +93,7 @@ generate_messages()
 catkin_package(
    INCLUDE_DIRS include
   LIBRARIES
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime sensor_msgs geometry_msgs message_runtime costmap_2d
 #  DEPENDS system_lib
 )
 
