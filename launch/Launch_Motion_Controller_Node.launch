@@ -1,9 +1,10 @@
 <!--xml-->
 <launch>
   
-  <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
+  <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
     <param name="DEBUG_MODE" value="1"/> 
 	<param name="LOGGING_ENABLED" value="1"/>
+    <param node="Operation_Mode" value="LIVE"/>
   </node>
   <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py" output="screen">
   </node>
