@@ -227,11 +227,11 @@ int main(int argc, char** argv)
 					Sonar_Scan.scan_time = dtime;
 					Sonar_Scan.ranges.resize(ping_sensor_count*points_per_beam);
 					
-					ping_distances[0] = 100.0;//SonarDistance_1*0.0254;
-					ping_distances[1] = 100.0;//SonarDistance_2*0.0254;
-					ping_distances[2] = 2.5;//100.0;//SonarDistance_3*0.0254;
-					ping_distances[3] = 100.0;//SonarDistance_4*0.0254;
-					ping_distances[4] = 100.0;//SonarDistance_5*0.0254;
+					ping_distances[0] = SonarDistance_1*0.0254;
+					ping_distances[1] = SonarDistance_2*0.0254;
+					ping_distances[2] = SonarDistance_3*0.0254;
+					ping_distances[3] = SonarDistance_4*0.0254;
+					ping_distances[4] = SonarDistance_5*0.0254;
 					
 					for(int j = 0; j < ping_sensor_count; j++)
 					{
@@ -277,6 +277,7 @@ int main(int argc, char** argv)
 				scan_trans.transform.translation.z = 0.3556;
 				scan_trans.transform.rotation = scan_quat;
 				scan_broadcaster.sendTransform(scan_trans);
+				printf("Published laser -> base_link tf\r\n");
 			}
 
 		}

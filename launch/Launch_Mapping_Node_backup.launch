@@ -1,0 +1,7 @@
+<launch>
+	<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
+		<param name="DEBUG_MODE" value="1"/>  
+		<param name="LOGGING_ENABLED" value="0"/>
+		<param name="Operation_Mode" value="LIVE"/>
+	</node>
+</launch>

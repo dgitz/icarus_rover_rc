@@ -114,7 +114,7 @@ void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 }
 void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-	//printf("x: %f y: %f head: %f\r\n",msg->x,msg->y,msg->theta);
+	printf("x: %f y: %f head: %f\r\n",msg->x,msg->y,msg->theta);
 	current_Easting_m = msg->x;
 	current_Northing_m = msg->y;
 	current_Heading_deg = msg->theta*180.0/PI;
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 				{ 
 					Gps_Valid = 1; 
 					current_Northing_m = 0.0;//current_Northing_m + .01;
-					current_Easting_m = current_Easting_m + .01;//0.0;
+					current_Easting_m = 0.0;//current_Easting_m + .01;//0.0;
 					current_Heading_deg = 0.0;
 				} //DEBUGGING ONLY
 				if(Gps_Valid == 1)
@@ -363,17 +363,17 @@ int main(int argc, char **argv)
 		odom_trans.transform.rotation = odom_quat;
 		odom_broadcaster.sendTransform(odom_trans);*/
 		
-		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(0.0);
+		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(current_Heading_deg*PI/180.0);
 		geometry_msgs::TransformStamped base_trans;
 		base_trans.header.stamp = current_time;
-		base_trans.header.frame_id = "map";
+		base_trans.header.frame_id = "odom";
 		base_trans.child_frame_id = "base_link";
 		base_trans.transform.translation.x = current_Northing_m;
 		base_trans.transform.translation.y = current_Easting_m;
 		base_trans.transform.translation.z = -0.2794;
 		base_trans.transform.rotation = base_quat;
 		base_broadcaster.sendTransform(base_trans);
-		
+		printf("Published base_link -> odom tf\r\n");
 		
 		nav_msgs::Odometry odom;
 		odom.header.stamp = current_time;
