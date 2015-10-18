@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 
-	ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
+	//ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
 	tf::TransformBroadcaster odom_broadcaster;
 	tf::TransformBroadcaster base_broadcaster;
 	//ros::Publisher Pub_ICARUS_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("ICARUS_Rover_Pose",1000);
@@ -353,42 +353,44 @@ int main(int argc, char **argv)
 		{
 		}
 		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
-		/*geometry_msgs::TransformStamped odom_trans;
+		geometry_msgs::TransformStamped odom_trans;
 		odom_trans.header.stamp = current_time;
 		odom_trans.header.frame_id = "map";
 		odom_trans.child_frame_id = "odom";
-		odom_trans.transform.translation.x = current_Northing_m;
-		odom_trans.transform.translation.y = current_Easting_m;
+		odom_trans.transform.translation.x = 0.0;
+		odom_trans.transform.translation.y = 0.0;
 		odom_trans.transform.translation.z = 0.0;
 		odom_trans.transform.rotation = odom_quat;
-		odom_broadcaster.sendTransform(odom_trans);*/
+		odom_broadcaster.sendTransform(odom_trans);
 		
-		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(current_Heading_deg*PI/180.0);
+		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.0);
 		geometry_msgs::TransformStamped base_trans;
 		base_trans.header.stamp = current_time;
 		base_trans.header.frame_id = "odom";
 		base_trans.child_frame_id = "base_link";
-		base_trans.transform.translation.x = current_Northing_m;
-		base_trans.transform.translation.y = current_Easting_m;
+		base_trans.transform.translation.x = current_Easting_m;
+		base_trans.transform.translation.y = current_Northing_m;
 		base_trans.transform.translation.z = -0.2794;
 		base_trans.transform.rotation = base_quat;
 		base_broadcaster.sendTransform(base_trans);
 		printf("Published base_link -> odom tf\r\n");
 		
-		nav_msgs::Odometry odom;
+
+		
+		/*nav_msgs::Odometry odom;
 		odom.header.stamp = current_time;
 		odom.header.frame_id = "odom";
 
 		//set the position
-		/*odom.pose.pose.position.x = current_Easting_m;
+		odom.pose.pose.position.x = current_Easting_m;
 		odom.pose.pose.position.y = current_Northing_m;
 		odom.pose.pose.position.z = 0.0;
 		odom.pose.pose.orientation = odom_quat;
 
 		//set the velocity
 		odom.child_frame_id = "base_link";
-		odom.twist.twist.linear.x = current_speed*sin(current_Heading_deg*PI/180.0);
-		odom.twist.twist.linear.y = current_speed*cos(current_Heading_deg*PI/180.0);
+		odom.twist.twist.linear.x = current_speed*sin(0.0);
+		odom.twist.twist.linear.y = current_speed*cos(0.0);
 		odom.twist.twist.angular.z = 0.0;
 
 		//publish the message

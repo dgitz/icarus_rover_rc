@@ -49,11 +49,29 @@ int SonarDistance_4 = 0;
 int SonarDistance_5 = 0;
 int hex2dec(char);
 int hex2dec(char,char);
+ros::Publisher Pub_ICARUS_Sonar_Scan;
 uint32_t sequence_counter = 0;
 
 void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-	//printf("t: %f\r\n",msg->scan_time);
+	sensor_msgs::LaserScan Scan;
+	Scan.header.stamp = ros::Time::now();
+	Scan.header.frame_id = "/laser";
+	Scan.header.seq = sequence_counter;
+	sequence_counter++;
+	Scan.angle_min = msg->angle_max;
+	Scan.angle_max = msg->angle_min;
+	Scan.range_min = msg->range_min;
+	Scan.range_max = 50.0;
+	Scan.scan_time = msg->scan_time;
+	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/500.0;
+	Scan.ranges.resize(500);
+	for(int i = 0; i < 500; i++)
+	{
+		Scan.ranges[i] = msg->ranges[i];
+	}
+	Pub_ICARUS_Sonar_Scan.publish(Scan);
+	
 }
 int main(int argc, char** argv)
 {
@@ -119,7 +137,7 @@ int main(int argc, char** argv)
 			tcsetattr(sc_device,TCSANOW,&newtio);
 		}
 	}
-	ros::Publisher Pub_ICARUS_Sonar_Scan;
+	
 	ros::Subscriber Sub_ICARUS_Sonar_Scan;
 	if(Operation_Mode == "LIVE")
 	{
@@ -140,6 +158,7 @@ int main(int argc, char** argv)
 	{
 		INITIALIZED = 1;
 		Sub_ICARUS_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_SimSonar_Scan_Callback);
+		Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
 	}
 	tf::TransformBroadcaster scan_broadcaster;
   	
@@ -248,7 +267,7 @@ int main(int argc, char** argv)
 					}
 					printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
 					Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
-					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
+					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(PI);
 					geometry_msgs::TransformStamped scan_trans;
 					scan_trans.header.stamp = ros::Time::now();
 					scan_trans.header.frame_id = "base_link";
@@ -267,7 +286,7 @@ int main(int argc, char** argv)
 			}
 			else if(Operation_Mode=="SIM")
 			{
-				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(0.0);
+				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(90.0*PI/180.0);
 				geometry_msgs::TransformStamped scan_trans;
 				scan_trans.header.stamp = ros::Time::now();
 				scan_trans.header.frame_id = "base_link";
@@ -277,7 +296,7 @@ int main(int argc, char** argv)
 				scan_trans.transform.translation.z = 0.3556;
 				scan_trans.transform.rotation = scan_quat;
 				scan_broadcaster.sendTransform(scan_trans);
-				printf("Published laser -> base_link tf\r\n");
+				//printf("Published laser -> base_link tf\r\n");
 			}
 
 		}

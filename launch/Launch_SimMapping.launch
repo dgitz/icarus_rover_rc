@@ -1,6 +1,7 @@
 <launch>
-	 <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
-     <remap from="scan" to="Matlab_Node/ICARUS_SimSonar_Scan"/>
+<node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+     <param name="odom_frame" value="odom"/>
+     <remap from="scan" to="Sonic_Controller_Node/ICARUS_Sonar_Scan"/>
       <param name="map_udpate_interval" value="5.0"/>
       <param name="maxUrange" value="16.0"/>
       <param name="sigma" value="0.05"/>

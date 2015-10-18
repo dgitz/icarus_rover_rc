@@ -26,45 +26,228 @@
 #include <linux/input.h>
 #include <fcntl.h>
 using namespace std;
-
-
+//Function Prototypes
+void initialize_occupancygrid();
+void reset_occupancygrid();
 //Communication Variables
 
 //Operation Variables
 string Mode = "";
 struct grid_cell cell_origin;
-
-
-
+int New_Pose = 0;
+int New_Scan = 0;
+int Grid_Finished = 1;
+sensor_msgs::LaserScan SonarScan;
+geometry_msgs::Pose2D RoverPose;
 //Program Variables
 double dtime = 0.0;
 double Pose_X;
 double Pose_Y;
 double Pose_Theta;
 bool map_initialized = false;
-int grid_width = 13; //Cell Count, should be odd
-int grid_height = 9; //Cell Count, should be odd
-double grid_size = 5.0; //Meters
-double bottom_left_X = (-1.0*grid_size*grid_width/2.0);
-double bottom_left_Y = (-1.0*grid_size*grid_height/2.0);
-double top_right_X = (1.0*grid_size*grid_width/2.0);
-double top_right_Y = (1.0*grid_size*grid_height/2.0);
-
-
+const int grid_width = 100; //Cell Count, should be odd
+const int grid_height = grid_width; //Cell Count, should be odd
+double bottom_left_X = -15.0;
+double bottom_left_Y = bottom_left_X;
+double top_right_X = -1.0*bottom_left_X;
+double top_right_Y = top_right_X;
+double grid_resolution = (top_right_Y - bottom_left_Y)/grid_width;
+struct GridCell
+{
+	int Value;
+	int ID;
+	int Updated;
+	double Center_Northing_m;
+	double Center_Easting_m;
+	int Changed;
+	int Parent; //ID
+	
+};
+GridCell OccupancyGrid[grid_width][grid_height];
+void initialize_occupancygrid()
+{
+	double start_x = bottom_left_X;
+	double start_y = top_right_Y;
+	double curx = start_x + grid_resolution/2.0;
+	double cury = start_y - grid_resolution/2.0;
+	for(int i = 0; i < grid_width;i++)
+	{
+		for(int j = 0; j < grid_height;j++)
+		{
+			OccupancyGrid[i][j].Updated = 0;
+			OccupancyGrid[i][j].Value = 0;
+			OccupancyGrid[i][j].ID = i*grid_width + j;
+			OccupancyGrid[i][j].Center_Northing_m = curx;
+			OccupancyGrid[i][j].Center_Easting_m = cury;
+			cury = cury - grid_resolution;
+			//Debugging
+			//if(OccupancyGrid[i][j].ID % 2 == 0) { OccupancyGrid[i][j].Value = 255; }
+			//else { OccupancyGrid[i][j].Value = 0; }
+		}
+		curx = curx + grid_resolution;
+		cury = start_y - grid_resolution/2.0;
+	}
+}
+void update_occupancygrid()
+{
+	Grid_Finished = 0;
+	for(int i = 0; i < grid_width;i++)
+	{
+		for(int j = 0; j < grid_height;j++)
+		{
+			OccupancyGrid[i][j].Updated = 0;
+			OccupancyGrid[i][j].Value = 0;
+		}
+	}
+	int beam_count = SonarScan.ranges.size();
+	double angle = SonarScan.angle_min - RoverPose.theta;
+	for(int s = 0; s < beam_count;s++)
+	{
+		double distance = SonarScan.ranges[s];
+		
+		while(distance > 0.0)
+		{
+			double p_x = distance*cos(angle) + RoverPose.y;
+			double p_y = distance*sin(angle) - RoverPose.x;
+			int i = round((p_x/grid_resolution) + grid_width/2.0)-1;
+			int j = round((-1.0*p_y/grid_resolution) + grid_height/2.0)-1;
+			if((i >= 0) and (i < grid_width) and (j >= 0) and (j < grid_height))
+			{
+				if(OccupancyGrid[i][j].Updated == 0)
+				{
+					OccupancyGrid[i][j].Value = 255;
+					OccupancyGrid[i][j].Updated = 1;
+				}
+			}
+			distance = distance - grid_resolution;
+		}
+		angle = angle + SonarScan.angle_increment;
+	}
+	Grid_Finished = 1;
+}
+void print_occupancygrid()
+{
+	printf("START\r\n");
+	for(int i = 0; i < grid_width; i++)
+	{
+		for(int j = 0; j < grid_height; j++)
+		{
+			printf("i:%dj:%dN:%fE:%fv:%d   ",i,j,OccupancyGrid[i][j].Center_Northing_m,OccupancyGrid[i][j].Center_Easting_m,OccupancyGrid[i][j].Value);
+		}
+		printf("\r\n");
+	}
+	printf("FINISH\r\n");
+}
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-	printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
+	RoverPose.x = msg->x;
+	RoverPose.y = msg->y;
+	RoverPose.theta = msg->theta;
+	New_Pose = 1;
+	//printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
 void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-	cout << "Got a Scan" << endl;
+	//cout << "Got a Scan" << endl;
+	SonarScan.angle_min = msg->angle_min;
+	SonarScan.angle_max = msg->angle_max;
+	SonarScan.angle_increment = msg->angle_increment;
+	SonarScan.range_min = msg->range_min;
+	SonarScan.range_max = msg->range_max;
+	SonarScan.ranges = msg->ranges;
+	New_Scan = 1;
 }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "Mapping_Node");
   ros::NodeHandle nh("~");
-  cell_origin.x = 0;
+  
+  nh.getParam("Operation_Mode",Mode);
+  
+    
+  //ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
+  ros::Rate loop_rate(10);
+  std::clock_t    start;
+  ros::Publisher Pub_ICARUS_OccupancyGrid;   
+  ros::Subscriber Sub_Rover_Pose;
+  ros::Subscriber Sub_Sonar_Scan;
+
+ if(Mode.compare("SIM") == 0)
+  {
+    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
+    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
+    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+    cout << "Sim Mode" << endl;
+  }
+  else if(Mode.compare("LIVE") == 0)
+  {
+    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
+    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
+    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+    cout << "Live Mode" << endl;
+  }	
+	initialize_occupancygrid();
+  //::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
+  nav_msgs::OccupancyGrid ros_OccupancyGrid;
+  /*ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
+  ICARUS_Diagnostic.System = ROVER;
+  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
+  ICARUS_Diagnostic.Component = MAPPING_NODE;*/
+
+	while(ros::ok())
+	{
+    
+		start = std::clock();
+		ros::spinOnce();
+		loop_rate.sleep();
+		
+		//printf("bx: %f by: %f tx: %f ty: %f\r\n",bottom_left_x,bottom_left_y,top_right_x,top_right_y);
+		try
+		{
+			if((Grid_Finished == 1) and (New_Scan == 1))
+			{	
+				Grid_Finished = 0;
+				update_occupancygrid();
+				ros_OccupancyGrid.header.stamp = ros::Time::now();
+				ros_OccupancyGrid.info.resolution = grid_resolution;
+				ros_OccupancyGrid.info.width = grid_width;
+				ros_OccupancyGrid.info.height = grid_height;
+				ros_OccupancyGrid.info.origin.position.x = bottom_left_X;
+				ros_OccupancyGrid.info.origin.position.y = bottom_left_Y;
+				ros_OccupancyGrid.data.resize(grid_width*grid_height);
+				for(int i = 0; i < grid_width; i++)
+				{
+					for(int j = 0; j < grid_height;j++)
+					{
+						ros_OccupancyGrid.data[i*grid_width+j] = OccupancyGrid[i][j].Value;
+					}
+				}
+				//ros_OccupancyGrid.origin.
+				Pub_ICARUS_OccupancyGrid.publish(ros_OccupancyGrid);
+				New_Scan = 0;
+				Grid_Finished = 1;
+				
+			}
+			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
+			
+			//print_occupancygrid();
+		}
+		catch(const std::exception& ex)
+		{
+			ROS_INFO("ERROR:%s",ex.what());
+            
+            //ICARUS Diagnostics Publisher
+            /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
+            ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
+            ICARUS_Diagnostic.Level = FATAL;
+            ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
+            ICARUS_Diagnostic.Description = ex.what();
+            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
+		}
+	}
+}/*
+cell_origin.x = 0;
   cell_origin.y = 0;
   cell_origin.X = 0.0;
   cell_origin.Y = 0.0;
@@ -81,71 +264,6 @@ int main(int argc, char **argv)
 		printf("X: %f Y: %f x: %d y: %d stat: %d\r\n",X,Y,cell.x,cell.y,cell.status);
 	}
   }
-  nh.getParam("Operation_Mode",Mode);
-  
-    
-  //ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
-  ros::Rate loop_rate(100);
-  std::clock_t    start;
-  ros::Publisher Pub_ICARUS_OccupancyGrid;  
-  ros::Publisher Pub_ICARUS_Rover_Odom;    
-  ros::Subscriber Sub_Rover_Pose;
-  ros::Subscriber Sub_Sonar_Scan;
-
- if(Mode.compare("SIM") == 0)
-  {
-    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
-    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    cout << Sub_Rover_Pose << endl;
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-    Pub_ICARUS_Rover_Odom = nh.advertise<nav_msgs::Odometry>("ICARUS_SimRover_Odom",1000);
-    cout << "Sim Mode" << endl;
-  }
-  else if(Mode.compare("LIVE") == 0)
-  {
-    Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
-    Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-    Pub_ICARUS_Rover_Odom = nh.advertise<nav_msgs::Odometry>("ICARUS_Rover_Odom",1000);
-    cout << "Live Mode" << endl;
-  }	
- 
-  //::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-  nav_msgs::OccupancyGrid OccupancyGrid;
-  /*ICARUS_Diagnostic.header.frame_id = "ICARUS_Mapping_Diagnostic";
-  ICARUS_Diagnostic.System = ROVER;
-  ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
-  ICARUS_Diagnostic.Component = MAPPING_NODE;*/
-
-	while(ros::ok())
-	{
-    
-		start = std::clock();
-		ros::spinOnce();
-		loop_rate.sleep();
-		
-		//printf("bx: %f by: %f tx: %f ty: %f\r\n",bottom_left_x,bottom_left_y,top_right_x,top_right_y);
-		try
-		{
-
-			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-			//Pub_ICARUS_OccupancyGrid.publish(OccupancyGrid);
-			
-		}
-		catch(const std::exception& ex)
-		{
-			ROS_INFO("ERROR:%s",ex.what());
-            
-            //ICARUS Diagnostics Publisher
-            /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
-            ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
-            ICARUS_Diagnostic.Level = FATAL;
-            ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-            ICARUS_Diagnostic.Description = ex.what();
-            Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
-		}
-	}
-}
 int get_index_from_cell(int x, int y)
 {
 	double x_index_calc; 
@@ -192,7 +310,7 @@ grid_cell find_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, i
 	new_cell.status = 1;
 	return new_cell;
 }
-
+*/
 /*
 int grid_width = 11; //Cell Count, should be odd
 int grid_height = 11; //Cell Count, should be odd
