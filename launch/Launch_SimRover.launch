@@ -5,7 +5,7 @@
 	<param name="LOGGING_ENABLED" value="0"/>
 	<param name="Operation_Mode" value="SIM"/>
   </node>
-  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node">
+  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node" >
     <param name="DEBUG_MODE" value="0"/>  
 	<param name="LOGGING_ENABLED" value="0"/>
 	<param name="Operation_Mode" value="SIM"/>

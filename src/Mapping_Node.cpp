@@ -21,14 +21,17 @@
 #include <unistd.h>
 #include "icarus_rover_rc/Mapping_Node.h"
 #include "icarus_rover_rc/Definitions.h"
+#include <boost/algorithm/string.hpp>
 //#include "icarus_rover_rc/ICARUS_Diagnostic.h"
 #include <unistd.h>
 #include <linux/input.h>
 #include <fcntl.h>
+#define PI 3.14159265359
 using namespace std;
 //Function Prototypes
 void initialize_occupancygrid();
 void reset_occupancygrid();
+void read_SonarModel_LUT();
 //Communication Variables
 
 //Operation Variables
@@ -37,6 +40,27 @@ struct grid_cell cell_origin;
 int New_Pose = 0;
 int New_Scan = 0;
 int Grid_Finished = 1;
+string SonarModel_Angle_Path = "/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Angle.csv";
+string SonarModel_Distance_Path = "/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Distance.csv";
+
+struct GridCell
+{
+	int Value;
+	int ID;
+	int Updated;
+	double Probability;
+	double Center_Northing_m;
+	double Center_Easting_m;
+	int Changed;
+	int Parent; //ID
+	
+};
+struct SonarModel_Point
+{
+	int index;
+	double value;
+};
+
 sensor_msgs::LaserScan SonarScan;
 geometry_msgs::Pose2D RoverPose;
 //Program Variables
@@ -45,25 +69,70 @@ double Pose_X;
 double Pose_Y;
 double Pose_Theta;
 bool map_initialized = false;
-const int grid_width = 100; //Cell Count, should be odd
+const int grid_width = 251; //Cell Count, should be odd
 const int grid_height = grid_width; //Cell Count, should be odd
 double bottom_left_X = -15.0;
 double bottom_left_Y = bottom_left_X;
 double top_right_X = -1.0*bottom_left_X;
 double top_right_Y = top_right_X;
 double grid_resolution = (top_right_Y - bottom_left_Y)/grid_width;
-struct GridCell
-{
-	int Value;
-	int ID;
-	int Updated;
-	double Center_Northing_m;
-	double Center_Easting_m;
-	int Changed;
-	int Parent; //ID
-	
-};
+int SonarModel_AngleSize = 0;
+int SonarModel_DistanceSize = 0;
+std::vector<SonarModel_Point> SonarModel_Angle;
+std::vector<SonarModel_Point> SonarModel_Distance;
+
+
 GridCell OccupancyGrid[grid_width][grid_height];
+void read_SonarModel_LUT()
+{
+	ifstream angle_file("/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Angle.csv");
+	string line;
+	
+	if(angle_file.is_open())
+	{
+		int i = 0;
+		while(getline(angle_file,line))
+		{
+			
+			std::vector<std::string> strs;
+			boost::split(strs,line,boost::is_any_of(","));
+			SonarModel_Point newPoint;
+			newPoint.index = atoi(strs.at(0).c_str());
+			newPoint.value = atof(strs.at(1).c_str());
+			SonarModel_Angle.push_back(newPoint);
+			i++;
+		}
+		SonarModel_AngleSize = i;
+		angle_file.close();
+		for(i = 0; i < SonarModel_AngleSize;i++)
+		{
+			printf("Ai:%d V:%f\r\n",SonarModel_Angle.at(i).index,SonarModel_Angle.at(i).value);
+		}
+	}
+	ifstream distance_file("/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Distance.csv");
+	if(distance_file.is_open())
+	{
+		int i = 0;
+		while(getline(distance_file,line))
+		{
+			
+			std::vector<std::string> strs;
+			boost::split(strs,line,boost::is_any_of(","));
+			SonarModel_Point newPoint;
+			newPoint.index = atoi(strs.at(0).c_str());
+			newPoint.value = atof(strs.at(1).c_str());
+			SonarModel_Distance.push_back(newPoint);
+			i++;
+		}
+		SonarModel_DistanceSize = i;
+		distance_file.close();
+		for(i = 0; i < SonarModel_DistanceSize;i++)
+		{
+			printf("Di:%d V:%f\r\n",SonarModel_Distance.at(i).index,SonarModel_Distance.at(i).value);
+		}
+	}
+	
+}
 void initialize_occupancygrid()
 {
 	double start_x = bottom_left_X;
@@ -75,7 +144,8 @@ void initialize_occupancygrid()
 		for(int j = 0; j < grid_height;j++)
 		{
 			OccupancyGrid[i][j].Updated = 0;
-			OccupancyGrid[i][j].Value = 0;
+			OccupancyGrid[i][j].Probability = 0.5;
+			OccupancyGrid[i][j].Value = 50;
 			OccupancyGrid[i][j].ID = i*grid_width + j;
 			OccupancyGrid[i][j].Center_Northing_m = curx;
 			OccupancyGrid[i][j].Center_Easting_m = cury;
@@ -96,33 +166,91 @@ void update_occupancygrid()
 		for(int j = 0; j < grid_height;j++)
 		{
 			OccupancyGrid[i][j].Updated = 0;
-			OccupancyGrid[i][j].Value = 0;
+			//OccupancyGrid[i][j].Value = 0;
 		}
 	}
 	int beam_count = SonarScan.ranges.size();
-	double angle = SonarScan.angle_min - RoverPose.theta;
+	double angle = RoverPose.theta + SonarScan.angle_min;
+	//printf("START\r\n");
 	for(int s = 0; s < beam_count;s++)
 	{
 		double distance = SonarScan.ranges[s];
-		
+		int beam_intercepted = 0;
+		if(SonarScan.ranges[s] < 0.0)
+		{
+			beam_intercepted = 0;
+			distance = 6.0; //Should be max sensor distance;
+		}
+		else
+		{
+			beam_intercepted = 1;
+		}
 		while(distance > 0.0)
 		{
-			double p_x = distance*cos(angle) + RoverPose.y;
-			double p_y = distance*sin(angle) - RoverPose.x;
-			int i = round((p_x/grid_resolution) + grid_width/2.0)-1;
-			int j = round((-1.0*p_y/grid_resolution) + grid_height/2.0)-1;
-			if((i >= 0) and (i < grid_width) and (j >= 0) and (j < grid_height))
+		double p_x = distance*sin(angle) + RoverPose.x;
+		double p_y = distance*cos(angle) + RoverPose.y;
+		int j = round((p_x/grid_resolution) + grid_width/2.0)-1;
+		int i = round((p_y/grid_resolution) + grid_height/2.0)-1;
+
+		if((i >= 0) and (i < grid_width) and (j >= 0) and (j < grid_height))
+		{
+			if(OccupancyGrid[i][j].Updated == 0)
 			{
-				if(OccupancyGrid[i][j].Updated == 0)
+				double temp;
+				int distance_index;
+				int angle_index;
+				int beam_index = s % 100;
+				double angle = (beam_index-50.0) * (15.0/50.0);
+				
+				if(beam_intercepted == 0)
 				{
-					OccupancyGrid[i][j].Value = 255;
-					OccupancyGrid[i][j].Updated = 1;
+					distance_index = 0;
+					angle_index = 1000;
 				}
+				else
+				{
+					 distance_index = (int)1000.0*(distance/SonarScan.ranges[s]);
+					 angle_index = (int)1000.0*(fabs(angle)/15.0);
+				}
+				
+				if(distance_index < 0) { distance_index = 0;}
+				if(distance_index > (SonarModel_DistanceSize-1)) {distance_index = SonarModel_DistanceSize-1;}
+				if(angle_index < 0) { angle_index = 0;}
+				if(angle_index > (SonarModel_AngleSize-1)) {angle_index = SonarModel_AngleSize-1;}
+				double P_distance = SonarModel_Distance.at(distance_index).value;
+				double P_angle = SonarModel_Angle.at(angle_index).value;
+				
+				double P = P_distance * P_angle;
+				OccupancyGrid[i][j].Probability = (P*OccupancyGrid[i][j].Probability)/((P*OccupancyGrid[i][j].Probability)+((1.0-P)*OccupancyGrid[i][j].Probability));
+				OccupancyGrid[i][j].Value = (int)(100.0*OccupancyGrid[i][j].Probability);
+				//if(s == 450)
+				//{
+					//printf("%d/%d t: %f i: %d D: %f d:%f P: %f P: %f V: %d\r\n",i,j,temp,distance_index,SonarScan.ranges[s],distance,P_distance,OccupancyGrid[i][j].Probability,OccupancyGrid[i][j].Value);
+				//}
+				//printf("i: %d j: %d x:%f y:%f theta:%f/%f  res: %f",i,j,p_x,p_y,angle,angle*180.0/PI,grid_resolution);
+				//OccupancyGrid[i][j].Value = 255;
+				
+				/*if((distance >= .9*SonarScan.ranges[s]))
+				{
+					OccupancyGrid[i][j].Value = OccupancyGrid[i][j].Value + 1;
+					if(OccupancyGrid[i][j].Value > 255) {OccupancyGrid[i][j].Value = 255; }
+				}
+				else
+				{
+					OccupancyGrid[i][j].Value = OccupancyGrid[i][j].Value - 1;
+					if(OccupancyGrid[i][j].Value < 0) {OccupancyGrid[i][j].Value = 0;}
+				}
+				OccupancyGrid[i][j].Updated = 1;*/
 			}
-			distance = distance - grid_resolution;
 		}
-		angle = angle + SonarScan.angle_increment;
+		
+		distance = distance - grid_resolution;
 	}
+		
+		angle = angle + SonarScan.angle_increment;
+		//if(angle < SonarScan.angle_min) { break; }
+	}
+	//printf("FINISH\r\n");
 	Grid_Finished = 1;
 }
 void print_occupancygrid()
@@ -177,16 +305,17 @@ int main(int argc, char **argv)
   {
     Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
     Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+    //Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
     cout << "Sim Mode" << endl;
   }
   else if(Mode.compare("LIVE") == 0)
   {
     Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
     Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
-    Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
+	//Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
     cout << "Live Mode" << endl;
   }	
+  Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
 	initialize_occupancygrid();
   //::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
   nav_msgs::OccupancyGrid ros_OccupancyGrid;
@@ -194,7 +323,7 @@ int main(int argc, char **argv)
   ICARUS_Diagnostic.System = ROVER;
   ICARUS_Diagnostic.SubSystem = ROBOT_CONTROLLER;
   ICARUS_Diagnostic.Component = MAPPING_NODE;*/
-
+	read_SonarModel_LUT();
 	while(ros::ok())
 	{
     

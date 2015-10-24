@@ -54,22 +54,21 @@ uint32_t sequence_counter = 0;
 
 void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
+	printf("Got a scan\r\n");
 	sensor_msgs::LaserScan Scan;
 	Scan.header.stamp = ros::Time::now();
 	Scan.header.frame_id = "/laser";
 	Scan.header.seq = sequence_counter;
 	sequence_counter++;
-	Scan.angle_min = msg->angle_max;
-	Scan.angle_max = msg->angle_min;
+	Scan.angle_min = msg->angle_min;
+	Scan.angle_max = msg->angle_max;
 	Scan.range_min = msg->range_min;
 	Scan.range_max = 50.0;
 	Scan.scan_time = msg->scan_time;
 	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/500.0;
 	Scan.ranges.resize(500);
-	for(int i = 0; i < 500; i++)
-	{
-		Scan.ranges[i] = msg->ranges[i];
-	}
+	Scan.ranges = msg->ranges;
+
 	Pub_ICARUS_Sonar_Scan.publish(Scan);
 	
 }
