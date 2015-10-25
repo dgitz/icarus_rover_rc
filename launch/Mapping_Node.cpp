@@ -3,7 +3,6 @@
 #include <geometry_msgs/Pose2D.h>
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <nav_msgs/Path.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
@@ -33,7 +32,6 @@ using namespace std;
 void initialize_occupancygrid();
 void reset_occupancygrid();
 void read_SonarModel_LUT();
-int path_search();
 //Communication Variables
 
 //Operation Variables
@@ -45,7 +43,6 @@ struct grid_cell cell_origin;
 int New_Pose = 0;
 int New_Scan = 0;
 int Grid_Finished = 1;
-int Path_Finished = 0;
 
 struct GridCell
 {
@@ -56,36 +53,24 @@ struct GridCell
 	double Center_Northing_m;
 	double Center_Easting_m;
 	int Changed;
+	int Parent; //ID
 	
 };
-
-struct Node
-{
-	int Parent_ID;
-	int ID;
-	double x,y;
-	int i,j;
-	double f,g,h;
-};
-
-std::vector<Node> OPEN_LIST;
-std::vector<Node> CLOSED_LIST;
-std::vector<Node> PATH;
 struct SonarModel_Point
 {
 	int index;
 	double value;
 };
+
 sensor_msgs::LaserScan SonarScan;
 geometry_msgs::Pose2D RoverPose;
-geometry_msgs::Pose2D GoalPose;
 //Program Variables
 double dtime = 0.0;
 double Pose_X;
 double Pose_Y;
 double Pose_Theta;
 bool map_initialized = false;
-const int grid_width = 100; //Cell Count, should be odd
+const int grid_width = 251; //Cell Count, should be odd
 const int grid_height = grid_width; //Cell Count, should be odd
 double bottom_left_X = -15.0;
 double bottom_left_Y = bottom_left_X;
@@ -99,7 +84,6 @@ std::vector<SonarModel_Point> SonarModel_Distance;
 
 
 GridCell OccupancyGrid[grid_width][grid_height];
-
 void read_SonarModel_LUT()
 {
 	ifstream angle_file("/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Angle.csv");
@@ -121,10 +105,10 @@ void read_SonarModel_LUT()
 		}
 		SonarModel_AngleSize = i;
 		angle_file.close();
-		/*for(i = 0; i < SonarModel_AngleSize;i++)
+		for(i = 0; i < SonarModel_AngleSize;i++)
 		{
 			printf("Ai:%d V:%f\r\n",SonarModel_Angle.at(i).index,SonarModel_Angle.at(i).value);
-		}*/
+		}
 	}
 	ifstream distance_file("/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Distance.csv");
 	if(distance_file.is_open())
@@ -143,10 +127,10 @@ void read_SonarModel_LUT()
 		}
 		SonarModel_DistanceSize = i;
 		distance_file.close();
-		/*for(i = 0; i < SonarModel_DistanceSize;i++)
+		for(i = 0; i < SonarModel_DistanceSize;i++)
 		{
 			printf("Di:%d V:%f\r\n",SonarModel_Distance.at(i).index,SonarModel_Distance.at(i).value);
-		}*/
+		}
 	}
 	
 }
@@ -229,6 +213,7 @@ void update_occupancygrid()
 					 distance_index = (int)1000.0*(distance/SonarScan.ranges[s]);
 					 angle_index = (int)1000.0*(fabs(angle)/(Sonar_Beamwidth/2.0));
 				}
+				asdf
 				if(distance_index < 0) { distance_index = 0;}
 				if(distance_index > (SonarModel_DistanceSize-1)) {distance_index = SonarModel_DistanceSize-1;}
 				if(angle_index < 0) { angle_index = 0;}
@@ -290,13 +275,6 @@ void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 	New_Pose = 1;
 	//printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
-void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
-{
-	GoalPose.x = msg->x;
-	GoalPose.y = msg->y;
-	GoalPose.theta = msg->theta;
-	//printf("Got a Goal x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
-}
 void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
 	//cout << "Got a Scan" << endl;
@@ -319,18 +297,16 @@ int main(int argc, char **argv)
   nh.getParam("Sonar_Beamwidth",Sonar_Beamwidth);
 	nh.getParam("Sonar_MaxDistance",Sonar_MaxDistance);
   //ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
-  ros::Rate loop_rate(3);
+  ros::Rate loop_rate(10);
   std::clock_t    start;
   ros::Publisher Pub_ICARUS_OccupancyGrid;   
   ros::Subscriber Sub_Rover_Pose;
   ros::Subscriber Sub_Sonar_Scan;
-  ros::Subscriber Sub_Rover_Goal;
-	ros::Publisher Pub_Rover_GlobalPath;
+
  if(Mode.compare("SIM") == 0)
   {
     Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_SimOccupancyGrid",1000);
     Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_Rover_Pose_Callback);
-	Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
     //Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
     cout << "Sim Mode" << endl;
   }
@@ -342,7 +318,6 @@ int main(int argc, char **argv)
     cout << "Live Mode" << endl;
   }	
   Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-  Pub_Rover_GlobalPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_GlobalPath",1000);
 	initialize_occupancygrid();
   //::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
   nav_msgs::OccupancyGrid ros_OccupancyGrid;
@@ -383,26 +358,6 @@ int main(int argc, char **argv)
 				Pub_ICARUS_OccupancyGrid.publish(ros_OccupancyGrid);
 				New_Scan = 0;
 				Grid_Finished = 1;
-				if(path_search() == 1)
-				{
-					//("PATH FOUND!");
-					std::reverse(PATH.begin(),PATH.end());
-					nav_msgs::Path GlobalPath;
-					GlobalPath.header.stamp = ros::Time::now();
-					GlobalPath.header.frame_id = "map";
-					GlobalPath.poses.resize(PATH.size());
-					//os_OccupancyGrid.data.resize(grid_width*grid_height);
-					for(int k = 0; k < PATH.size();k++)
-					{
-						//printf("%d(%d,%d,%f,%f,%f)->",PATH.at(k).ID,PATH.at(k).i,PATH.at(k).j,PATH.at(k).x,PATH.at(k).y,OccupancyGrid[PATH.at(k).i][PATH.at(k).j].Probability);
-						GlobalPath.poses[k].header.stamp = ros::Time::now();
-						GlobalPath.poses[k].pose.position.x = PATH.at(k).x;
-						GlobalPath.poses[k].pose.position.y = PATH.at(k).y;
-						
-					}
-					//printf("PATH COMPLETE.\r\n");
-					Pub_Rover_GlobalPath.publish(GlobalPath);
-				}
 				
 			}
 			dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
@@ -422,237 +377,80 @@ int main(int argc, char **argv)
             Pub_ICARUS_Mapping_Diagnostic.publish(ICARUS_Diagnostic);*/
 		}
 	}
-}
-int path_search()
+}/*
+cell_origin.x = 0;
+  cell_origin.y = 0;
+  cell_origin.X = 0.0;
+  cell_origin.Y = 0.0;
+  cell_origin.index = get_index_from_cell(cell_origin.x,cell_origin.y);
+  printf("bx: %f by: %f tx: %f ty: %f\r\n",bottom_left_X,bottom_left_Y,top_right_X,top_right_Y);
+  for (int i = 0; i <= 0; i++)
+  {
+	for(int j = -60; j <= 60; j++)
+	{
+		double X = i * grid_size/8.0;
+		double Y = j * grid_size/8.0;
+		grid_cell cell;
+		cell = find_cell( cell, cell_origin,X, Y,0);
+		printf("X: %f Y: %f x: %d y: %d stat: %d\r\n",X,Y,cell.x,cell.y,cell.status);
+	}
+  }
+int get_index_from_cell(int x, int y)
 {
-	OPEN_LIST.clear();
-	CLOSED_LIST.clear();
-	PATH.clear();
-	Node NewNode;
-	
-	/*
-	double p_x = distance*sin(angle) + RoverPose.x;
-		double p_y = distance*cos(angle) + RoverPose.y;
-		int j = round((p_x/grid_resolution) + grid_width/2.0)-1;
-		int i = round((p_y/grid_resolution) + grid_height/2.0)-1;
-	*/
-	NewNode.x = RoverPose.x;
-	NewNode.y = RoverPose.y;
-	NewNode.i = round((NewNode.y/grid_resolution) + grid_height/2.0)-1;
-	NewNode.j = round((NewNode.x/grid_resolution) + grid_width/2.0)-1;
-	NewNode.ID = (NewNode.i*grid_width) + NewNode.j;
-	NewNode.Parent_ID = -1; //No Parent here
-	NewNode.f = 0.0;
-	NewNode.g = 0.0;
-	NewNode.h = 0.0;
-	OPEN_LIST.push_back(NewNode);
-	int Goal_i = round((GoalPose.y/grid_resolution) + grid_height/2.0) -1;
-	int Goal_j = round((GoalPose.x/grid_resolution) + grid_width/2.0) -1;
-	//int Goal_i = 80;
-	//int Goal_j = 50;
-	int Start_ID = NewNode.ID;
-	//printf("Si: %d Sj: %d SID: %d Gi: %d Gj: %d\r\n",NewNode.i,NewNode.j,NewNode.ID,Goal_i,Goal_j);
-	int iteration_counter = 0;
-	int path_found = 0;
-	while(OPEN_LIST.size() > 0)
-	{
-		//printf("\r\n\r\n\r\nI: %d OPEN:\r\n",iteration_counter);
-		/*for(int l = 0; l < OPEN_LIST.size();l++)
-		{
-			printf(" ID: %d i: %d j: %d\r\n",OPEN_LIST.at(l).ID,OPEN_LIST.at(l).i,OPEN_LIST.at(l).j);
-		}*/
-		/*printf("I: %d CLOSED:\r\n",iteration_counter);
-		for(int l = 0; l < CLOSED_LIST.size();l++)
-		{
-			printf(" ID: %d i: %d j: %d P: %d\r\n",CLOSED_LIST.at(l).ID,CLOSED_LIST.at(l).i,CLOSED_LIST.at(l).j,CLOSED_LIST.at(l).Parent_ID);
-		}*/
-		if(iteration_counter > (10*grid_width*grid_width))//I SEARCHED WAY TOO MANY CELLS
-		{
-			printf("NO PATH FOUND!\r\n");
-			return 0;
-		}
-		//Assume the lowest f Node is the first one, and search the rest to see if there is anyone better.
-		double min_f = OPEN_LIST.at(0).f;
-		int index = 0;
-		for(int i = 0; i < OPEN_LIST.size();i++)
-		{
-			if(OPEN_LIST.at(i).f < min_f) 
-			{ 
-				min_f = OPEN_LIST.at(i).f;
-				index = i;
-			}
-		}
-		Node q = OPEN_LIST.at(index);
-		OPEN_LIST.erase(OPEN_LIST.begin()+index);
-		//printf("OPEN LIST SIZE: %d\r\n",OPEN_LIST.size());
-		//printf("OPENING ID: %d P: %d\r\n",q.ID,q.Parent_ID);
-		std::vector<Node> SUCCESSORS;
-		//Add Successors
-		if((q.i == 0) || (q.i == grid_width) || (q.j == 0) || (q.j == grid_width)) 
-		{ 
-			//printf("Border cell, don't check this.\r\n");
-			break; 
-		} //Check if cell is on border.
-		Node NewNode;
-		//Add Successor 0
-		
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i+1;
-		NewNode.j = q.j-1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 1
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i+1;
-		NewNode.j = q.j;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 2
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i+1;
-		NewNode.j = q.j+1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 3
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i;
-		NewNode.j = q.j+1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 4
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i-1;
-		NewNode.j = q.j+1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 5
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i-1;
-		NewNode.j = q.j;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 6
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i-1;
-		NewNode.j = q.j-1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		//Add Successor 7
-		NewNode.Parent_ID = q.ID;
-		NewNode.i = q.i;
-		NewNode.j = q.j-1;
-		NewNode.ID = (NewNode.i * grid_width) + NewNode.j;
-		SUCCESSORS.push_back(NewNode);
-		/*for(int k = 0; k < SUCCESSORS.size();k++)
-		{
-			printf("S ID: %d (%d,%d),",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-		}
-		printf("\r\n");*/
-		for(int k = 0; k < SUCCESSORS.size();k++)
-		{
-			
-			//printf("2S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			SUCCESSORS.at(k).x = (double)((double)SUCCESSORS.at(k).j - (grid_width/2.0) + 1.0)*grid_resolution;
-			SUCCESSORS.at(k).y = (double)((double)SUCCESSORS.at(k).i - (grid_height/2.0) + 1.0)*grid_resolution;
-			double di; 
-			double dj;
-			di = q.i - SUCCESSORS.at(k).i;
-			dj = q.j - SUCCESSORS.at(k).j;
-			double d_successor_to_q = pow((pow(di,2.0)+pow(dj,2.0)),0.5);
-			//printf("3S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			SUCCESSORS.at(k).g = q.g + d_successor_to_q;
-			di = Goal_i - SUCCESSORS.at(k).i;
-			dj = Goal_j - SUCCESSORS.at(k).j; 
-			double d_successor_to_goal = pow((pow(di,2.0)+pow(dj,2.0)),0.5);
-			//printf("4S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			SUCCESSORS.at(k).h = d_successor_to_goal;
-			SUCCESSORS.at(k).f = SUCCESSORS.at(k).g + SUCCESSORS.at(k).h;
-			int add_successor = 1;
-			if(OccupancyGrid[SUCCESSORS.at(k).i][SUCCESSORS.at(k).j].Probability > 0.5){ add_successor = 0; }
-			//printf("5S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			//printf("OPEN LIST SIZE: %d\r\n",OPEN_LIST.size());
-			if(OPEN_LIST.size() > 0)
-			{
-				for(int l = 0; l < OPEN_LIST.size();l++)
-				{
-					//printf("S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-					//printf("Checking: OPEN ID: %d w/ SUCCESSOR ID: %d\r\n",OPEN_LIST.at(l).ID,SUCCESSORS.at(k).ID);
-					if(OPEN_LIST.at(l).ID == SUCCESSORS.at(k).ID)
-					{
-						//if(OPEN_LIST.at(l).f < SUCCESSORS.at(k).f) { add_successor = 0; }
-						add_successor = 0;
-					}
-				}
-			}
-			//printf("S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			for(int l = 0; l < CLOSED_LIST.size();l++)
-			{
-				//printf("S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-				if(CLOSED_LIST.at(l).ID == SUCCESSORS.at(k).ID)
-				{
-					//if(CLOSED_LIST.at(l).f < SUCCESSORS.at(k).f) { add_successor = 0; }
-					add_successor = 0;
-					//break;
-				}
-			}
-			if(add_successor == 1)
-			{
-				//printf("OPEN_LIST PUSH S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-				OPEN_LIST.push_back(SUCCESSORS.at(k)); 
-			}
-			else
-			{
-				//printf("NOT PUSHING TO OPEN LIST: %d(%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			}
-		}
-		CLOSED_LIST.push_back(q);
-		for(int k = 0; k < OPEN_LIST.size();k++)
-		{
-		
-		//printf("1S ID:%d (%d,%d)\r\n",SUCCESSORS.at(k).ID,SUCCESSORS.at(k).i,SUCCESSORS.at(k).j);
-			if ((OPEN_LIST.at(k).i == Goal_i) and (OPEN_LIST.at(k).j == Goal_j))
-			{
-				//printf("PATH FOUND!\r\n");
-				
-				path_found =1;
-				int path_complete = 0;
-				int id = OPEN_LIST.at(k).ID;
-				
-				//printf("PATH ID's: ");
-				//printf("%d(%d)->",id,OPEN_LIST.at(k).Parent_ID);
-				id = OPEN_LIST.at(k).Parent_ID;
-				while(path_complete == 0)
-				{
-					for(int l = 0; l < CLOSED_LIST.size();l++)
-					{
-						//printf("id: %d checking: %d\r\n",id,CLOSED_LIST.at(l).ID);
-						if(id < 0)
-						{
-							path_complete = 1;
-							//printf("PATH COMPLETE\r\n");
-							return 1;
-						}
-						else if(id == CLOSED_LIST.at(l).ID)
-						{	
-							//printf("%d(%d)->",id,CLOSED_LIST.at(l).Parent_ID);
-							id = CLOSED_LIST.at(l).Parent_ID;
-							PATH.push_back(CLOSED_LIST.at(l));
-						}
-					}
-				}
-				
-			}
-		}
-		//printf("Searching...\r\n");
-		iteration_counter++;
-		
-	}
-	if(path_found == 0)
-	{
-		printf("PATH NOT FOUND!\r\n");	
-		return 0;
-	}
+	double x_index_calc; 
+	double y_index_calc;
+	y_index_calc = (y+floor(grid_height/2.0))*grid_width;
+	x_index_calc = x+floor(grid_width/2.0);
+	return y_index_calc + x_index_calc;
 }
+grid_cell find_cell(grid_cell mycell, grid_cell map_origin,double X, double Y, int value)
+{
+	grid_cell new_cell;
+	new_cell.X = X;
+	new_cell.Y = Y;
+	if (new_cell.X < bottom_left_X)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else if(new_cell.X > top_right_X)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else
+	{
+		new_cell.x = floor((new_cell.X-map_origin.X+grid_size/2.0)/grid_size);
+	}
+	if (new_cell.Y < bottom_left_Y)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else if(new_cell.Y > top_right_Y)
+	{
+		new_cell.status = 0;
+		return new_cell;
+	}
+	else
+	{
+		new_cell.y = floor((map_origin.Y-new_cell.Y+grid_size/2.0)/grid_size);
+	}
+	if(new_cell.y > grid_height/2.0) { new_cell.y = floor(grid_height/2.0); }
+	if(new_cell.x > grid_width/2.0) { new_cell.x = floor(grid_width/2.0); }
+	new_cell.status = 1;
+	return new_cell;
+}
+*/
+/*
+int grid_width = 11; //Cell Count, should be odd
+int grid_height = 11; //Cell Count, should be odd
+double grid_size = 5.0; //Meters
+double bottom_left_x = -1.0*grid_size*grid_width/2.0;
+double bottom_left_y = -1.0*grid_size*grid_height/2.0;
+double top_right_x = 1.0*grid_size*grid_width/2.0;
+double top_right_y = 1.0*grid_size*grid_height/2.0;
+*/
   /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
   ICARUS_Diagnostic.Level = SEVERE;

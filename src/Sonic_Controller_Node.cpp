@@ -269,8 +269,8 @@ int main(int argc, char** argv)
 					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(PI);
 					geometry_msgs::TransformStamped scan_trans;
 					scan_trans.header.stamp = ros::Time::now();
-					scan_trans.header.frame_id = "base_link";
-					scan_trans.child_frame_id = "laser";
+					scan_trans.header.frame_id = "/base_link";
+					scan_trans.child_frame_id = "/laser";
 					scan_trans.transform.translation.x = 0.0;
 					scan_trans.transform.translation.y = 0.0;
 					scan_trans.transform.translation.z = 0.3556;
@@ -288,8 +288,8 @@ int main(int argc, char** argv)
 				geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(90.0*PI/180.0);
 				geometry_msgs::TransformStamped scan_trans;
 				scan_trans.header.stamp = ros::Time::now();
-				scan_trans.header.frame_id = "base_link";
-				scan_trans.child_frame_id = "laser";
+				scan_trans.header.frame_id = "/base_link";
+				scan_trans.child_frame_id = "/laser";
 				scan_trans.transform.translation.x = 0.0;
 				scan_trans.transform.translation.y = 0.0;
 				scan_trans.transform.translation.z = 0.3556;

@@ -67,14 +67,21 @@ int DEBUG_MODE= 0;
 int LOGGING_ENABLED = 0;
 double dtime = 0.0;
 string Operation_Mode = "";
-
-
+geometry_msgs::Pose2D GoalPose;
+int Goal_Reached = 0;
 
 
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
 
 
-
+void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
+{
+	GoalPose.x = msg->x;
+	GoalPose.y = msg->y;
+	GoalPose.theta = msg->theta;
+	//printf("Got a Goal x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
+	
+}
 
 void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
@@ -114,10 +121,18 @@ void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 }
 void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-	printf("x: %f y: %f head: %f\r\n",msg->x,msg->y,msg->theta);
+	//printf("x: %f y: %f head: %f\r\n",msg->x,msg->y,msg->theta);
 	current_Easting_m = msg->x;
 	current_Northing_m = msg->y;
 	current_Heading_deg = msg->theta*180.0/PI;
+	double dx = fabs(current_Easting_m - GoalPose.x);
+	double dy = fabs(current_Northing_m - GoalPose.y);
+	//printf("Goal E: %f E: %f Goal N: %f N: %f dx: %f dy: %f\r\n",GoalPose.x,current_Easting_m,GoalPose.y,current_Northing_m,dx,dy);
+	if((dx < 0.5) and (dy < 0.5))
+	{
+		printf("GOAL REACHED!\r\n");
+		Goal_Reached = 1;
+	}
 }
 void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 {
@@ -223,6 +238,7 @@ int main(int argc, char **argv)
 	ros::Publisher Pub_Rover_RC;
 	ros::Publisher Pub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Pose;
+	ros::Subscriber Sub_Rover_Goal;
 	if(Operation_Mode == "LIVE")
 	{
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
@@ -236,6 +252,7 @@ int main(int argc, char **argv)
 	{
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 		Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_SimRover_Pose_Callback);
+		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 
@@ -355,8 +372,8 @@ int main(int argc, char **argv)
 		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
 		geometry_msgs::TransformStamped odom_trans;
 		odom_trans.header.stamp = current_time;
-		odom_trans.header.frame_id = "map";
-		odom_trans.child_frame_id = "odom";
+		odom_trans.header.frame_id = "/map";
+		odom_trans.child_frame_id = "/odom";
 		odom_trans.transform.translation.x = 0.0;
 		odom_trans.transform.translation.y = 0.0;
 		odom_trans.transform.translation.z = 0.0;
@@ -366,14 +383,14 @@ int main(int argc, char **argv)
 		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.0);
 		geometry_msgs::TransformStamped base_trans;
 		base_trans.header.stamp = current_time;
-		base_trans.header.frame_id = "odom";
-		base_trans.child_frame_id = "base_link";
+		base_trans.header.frame_id = "/odom";
+		base_trans.child_frame_id = "/base_link";
 		base_trans.transform.translation.x = current_Easting_m;
 		base_trans.transform.translation.y = current_Northing_m;
 		base_trans.transform.translation.z = -0.2794;
 		base_trans.transform.rotation = base_quat;
 		base_broadcaster.sendTransform(base_trans);
-		printf("Published base_link -> odom tf\r\n");
+		//printf("Published base_link -> odom tf\r\n");
 		
 
 		
