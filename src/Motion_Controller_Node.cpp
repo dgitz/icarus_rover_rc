@@ -8,6 +8,8 @@
 #include <geometry_msgs/Pose2D.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+
+#include <nav_msgs/Path.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
@@ -48,7 +50,12 @@ int Drive_Command = DRIVE_NEUTRAL;
 int armed_state = DISARMED;
 int joystick_timeout_counter = 0;
 int current_gear = GEAR_PARK;
-
+int Joystick_Steer_Axis = 0;
+int Joystick_Throttle_Axis = 3;
+int Joystick_Disarm_Button = 14;
+int Joystick_Arm_Button = 12;
+double Desired_Steering_Percentage = 0.0;
+double Desired_Throttle = 0.0;
 //Position Variables
 float current_latitude = 0.0;
 float current_longitude = 0.0;
@@ -68,14 +75,55 @@ int LOGGING_ENABLED = 0;
 double dtime = 0.0;
 string Operation_Mode = "";
 geometry_msgs::Pose2D GoalPose;
+sensor_msgs::Joy RoverCommand;
+geometry_msgs::Pose2D TargetPose;
+int Simulation_Initialized = 0;
 int Goal_Reached = 0;
 
 
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
-
+void GlobalPath_Callback(const nav_msgs::Path::ConstPtr& msg)
+{
+	int PathSize = msg->poses.size();
+	float Path_LookAhead = .25;
+	int path_index = Path_LookAhead*PathSize;
+	if(path_index < 0){path_index = 0;}
+	else if(path_index > PathSize) { path_index = 0; }
+	/*if(Path_LookAhead > PathSize) 
+	{	
+		TargetPose.x = msg->poses[0].pose.position.x;
+		TargetPose.y = msg->poses[0].pose.position.y;
+	}
+	else
+	{*/
+		TargetPose.x = msg->poses[path_index].pose.position.x;
+		TargetPose.y = msg->poses[path_index].pose.position.y;
+	//}
+	/*for(int i = 0; i < PathSize;i++)
+	{
+		printf("P[%d] N: %f E: %f\r\n",i,msg->poses[i].pose.position.y,msg->poses[i].pose.position.x);
+	}*/
+	//TargetPose.theta = current_Heading_deg
+	double dx = TargetPose.x-current_Easting_m;
+	double dy = TargetPose.y-current_Northing_m;
+	double Target_Bearing_deg = (atan2(dx,dy)*180/PI);
+	printf("N: %f E: %f Heading: %f Bearing: %f Tx %f Ty: %f dx: %f dy: %f\r\n",current_Northing_m,current_Easting_m,current_Heading_deg,Target_Bearing_deg,TargetPose.x,TargetPose.y,dx,dy);
+	//printf("Tx:%f,%f\r\n",TargetPose.x,msg->poses[Path_LookAhead].pose.position.x);
+	if(Goal_Reached == 1)
+	{
+		Desired_Throttle = 0.0;
+	}
+	else
+	{
+		Desired_Throttle = 0.5;
+	}
+	Desired_Steering_Percentage = (Target_Bearing_deg-current_Heading_deg)/180.0;
+	
+}
 
 void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
+	Simulation_Initialized = 1;
 	GoalPose.x = msg->x;
 	GoalPose.y = msg->y;
 	GoalPose.theta = msg->theta;
@@ -128,25 +176,23 @@ void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 	double dx = fabs(current_Easting_m - GoalPose.x);
 	double dy = fabs(current_Northing_m - GoalPose.y);
 	//printf("Goal E: %f E: %f Goal N: %f N: %f dx: %f dy: %f\r\n",GoalPose.x,current_Easting_m,GoalPose.y,current_Northing_m,dx,dy);
-	if((dx < 0.5) and (dy < 0.5))
+	if((dx < 0.5) and (dy < 0.5) and (Simulation_Initialized == 1))
 	{
 		printf("GOAL REACHED!\r\n");
 		Goal_Reached = 1;
 	}
+	
 }
 void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 {
 	
-  int steer_axis = 0;
-  int drive_axis = 3;
-  int disarm_button = 14;
-  int arm_button = 12;
+
   float deadband = 0.05;
   joystick_timeout_counter = 0; //Reset Joystick Timeout Counter
-  float steer_axis_value = joy->axes[steer_axis];
-  float drive_axis_value = joy->axes[drive_axis];
-  if(joy->buttons[disarm_button] == 1) { armed_state = DISARMED; }
-  else if(joy->buttons[arm_button] == 1) { armed_state = ARMED; }
+  float steer_axis_value = joy->axes[Joystick_Steer_Axis];
+  float drive_axis_value = joy->axes[Joystick_Throttle_Axis];
+  if(joy->buttons[Joystick_Disarm_Button] == 1) { armed_state = DISARMED; }
+  else if(joy->buttons[Joystick_Arm_Button] == 1) { armed_state = ARMED; }
   if(armed_state == ARMED)
   {
 		if(steer_axis_value > deadband) // Turning Left
@@ -239,6 +285,9 @@ int main(int argc, char **argv)
 	ros::Publisher Pub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Goal;
+	ros::Publisher Pub_Rover_Command;
+	ros::Subscriber Sub_Rover_GlobalPath;
+	////Pub_Rover_GlobalPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_GlobalPath",1000);
 	if(Operation_Mode == "LIVE")
 	{
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
@@ -247,12 +296,15 @@ int main(int argc, char **argv)
 		VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
 		Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
 		Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
+		Sub_Rover_GlobalPath = nh.subscribe<nav_msgs::Path>("/Mapping_Node/ICARUS_Rover_GlobalPath",1000,GlobalPath_Callback);
 	}
 	else if(Operation_Mode == "SIM")
 	{
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 		Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_SimRover_Pose_Callback);
 		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
+		Pub_Rover_Command = nh.advertise<sensor_msgs::Joy>("ICARUS_Rover_Command",1000);
+		Sub_Rover_GlobalPath = nh.subscribe<nav_msgs::Path>("/Mapping_Node/ICARUS_Rover_GlobalPath",1000,GlobalPath_Callback);
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 
@@ -271,7 +323,7 @@ int main(int argc, char **argv)
 	last_time = ros::Time::now();
 	while( ros::ok() && INITIALIZED)
 	{
-    
+		
 		start = std::clock();
 	  	ros::spinOnce();
 		current_time = ros::Time::now();
@@ -368,6 +420,18 @@ int main(int argc, char **argv)
 		}
 		else if(Operation_Mode == "SIM")
 		{
+			RoverCommand.header.stamp = ros::Time::now();
+			RoverCommand.axes.resize(8);
+			RoverCommand.buttons.resize(8);
+			/*
+			int Joystick_Steer_Axis = 0;
+int Joystick_Throttle_Axis = 3;
+int Joystick_Disarm_Button = 14;
+int Joystick_Arm_Button = 12;
+			*/
+			RoverCommand.axes[Joystick_Steer_Axis] = Desired_Steering_Percentage;
+			RoverCommand.axes[Joystick_Throttle_Axis] = Desired_Throttle;
+			Pub_Rover_Command.publish(RoverCommand);
 		}
 		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
 		geometry_msgs::TransformStamped odom_trans;

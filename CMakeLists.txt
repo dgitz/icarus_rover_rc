@@ -77,7 +77,7 @@ add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HU
 #   geometry_msgs
 #   sensor_msgs
  #)
-generate_messages()
+#generate_messages()
 ###################################
 ## catkin specific configuration ##
 ###################################
