@@ -20,10 +20,11 @@
 #define NAVIGATION_NODE 2
 #define MOTION_CONTROLLER_NODE 3
 #define SONIC_CONTROLLER_NODE 4
-#define EVOLUTION_NODE 5
-#define TARGETING_NODE 6
+#define ROBOT_CONTROLLER_NODE 5
 #define MAPPING_NODE 7
-#define POSE_NODE 8
+#define EVOLUTION_NODE 8
+#define TARGETING_NODE 9
+
 
 //Field 4: Diagnostic Type
 #define NO_ERROR 0

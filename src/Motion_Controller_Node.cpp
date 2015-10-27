@@ -296,15 +296,12 @@ int main(int argc, char **argv)
 		VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
 		Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
 		Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
-		Sub_Rover_GlobalPath = nh.subscribe<nav_msgs::Path>("/Mapping_Node/ICARUS_Rover_GlobalPath",1000,GlobalPath_Callback);
 	}
 	else if(Operation_Mode == "SIM")
 	{
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 		Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_SimRover_Pose_Callback);
 		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
-		Pub_Rover_Command = nh.advertise<sensor_msgs::Joy>("ICARUS_Rover_Command",1000);
-		Sub_Rover_GlobalPath = nh.subscribe<nav_msgs::Path>("/Mapping_Node/ICARUS_Rover_GlobalPath",1000,GlobalPath_Callback);
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 
@@ -420,18 +417,6 @@ int main(int argc, char **argv)
 		}
 		else if(Operation_Mode == "SIM")
 		{
-			RoverCommand.header.stamp = ros::Time::now();
-			RoverCommand.axes.resize(8);
-			RoverCommand.buttons.resize(8);
-			/*
-			int Joystick_Steer_Axis = 0;
-int Joystick_Throttle_Axis = 3;
-int Joystick_Disarm_Button = 14;
-int Joystick_Arm_Button = 12;
-			*/
-			RoverCommand.axes[Joystick_Steer_Axis] = Desired_Steering_Percentage;
-			RoverCommand.axes[Joystick_Throttle_Axis] = Desired_Throttle;
-			Pub_Rover_Command.publish(RoverCommand);
 		}
 		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
 		geometry_msgs::TransformStamped odom_trans;
