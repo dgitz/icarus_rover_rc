@@ -11,6 +11,8 @@
 	  <param name="Operation_Mode" value="SIM"/>
     <param name="DEBUG_MODE" value="0"/>  
 	<param name="LOGGING_ENABLED" value="0"/>
+	<param name="Distance_Threshold_m" value="0.5"/>
+	<param name="Time_Threshold_sec" value="180.0"/>
 	
   </node>
   <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" >
@@ -22,15 +24,16 @@
 	  <param name="Operation_Mode" value="SIM"/>
     <param name="DEBUG_MODE" value="0"/>  
 	<param name="LOGGING_ENABLED" value="0"/>
-	<param name="points_per_beam" value="100"/>
+	<param name="points_per_beam" value="10"/>
   </node>
-<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen">
+<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
 		  <param name="Operation_Mode" value="SIM"/>
 		<param name="DEBUG_MODE" value="1"/>  
 		<param name="LOGGING_ENABLED" value="0"/>
-		<param name="Beams_Per_Sonar" value="100"/>
+		<param name="Beams_Per_Sonar" value="10"/>
 		<param name="Sonar_Beamwidth" value="30"/>
 		<param name="Sonar_MaxDistance" value = "6.5024"/>
+		
 	</node>
  
 </launch>

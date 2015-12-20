@@ -65,8 +65,9 @@ void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 	Scan.range_min = msg->range_min;
 	Scan.range_max = 50.0;
 	Scan.scan_time = msg->scan_time;
-	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/500.0;
-	Scan.ranges.resize(500);
+	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/130.0;
+	printf("Start: %f Stop: %f Inc: %f\r\n",msg->angle_min,msg->angle_max,Scan.angle_increment);
+	Scan.ranges.resize(130.0);
 	Scan.ranges = msg->ranges;
 
 	Pub_ICARUS_Sonar_Scan.publish(Scan);
@@ -150,7 +151,7 @@ int main(int argc, char** argv)
 		nh.getParam("angle_increment_deg",angle_increment);
 		nh.getParam("range_min_m",range_min);
 		nh.getParam("range_max_m",range_max);
-		printf("Min Range: %f Max Range: %f",range_min,range_max);
+		//printf("Min Range: %f Max Range: %f",range_min,range_max);
 		Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
 	}
 	else if(Operation_Mode == "SIM")

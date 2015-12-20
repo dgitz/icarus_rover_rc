@@ -120,7 +120,8 @@ add_executable(Motion_Controller_Node src/Motion_Controller_Node.cpp)
 add_executable(Sonic_Controller_Node src/Sonic_Controller_Node.cpp)
 add_executable(Diagnostic_Node src/Diagnostic_Node.cpp)
 add_executable(Mapping_Node src/Mapping_Node.cpp)
-#add_executable(Learning_Node src/Evolution_Node.cpp)
+add_executable(Navigation_Node src/Navigation_Node.cpp)
+add_executable(Robot_Controller_Node src/Robot_Controller_Node)
 
 #Obsolete Nodes
 #add_executable(tf_broadcaster src/tf_broadcaster.cpp)
@@ -175,7 +176,14 @@ target_link_libraries(Mapping_Node
  ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
-
+target_link_libraries(Navigation_Node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+target_link_libraries(Robot_Controller_Node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}
 #  ${OpenCV_LIBRARIES}

@@ -8,7 +8,7 @@
 #include <geometry_msgs/Pose2D.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-
+#include <std_msgs/Int32.h>
 #include <nav_msgs/Path.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -78,7 +78,7 @@ geometry_msgs::Pose2D GoalPose;
 sensor_msgs::Joy RoverCommand;
 geometry_msgs::Pose2D TargetPose;
 int Simulation_Initialized = 0;
-int Goal_Reached = 0;
+int Rover_Status = STATUS_UNKNOWN;
 
 
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
@@ -109,14 +109,8 @@ void GlobalPath_Callback(const nav_msgs::Path::ConstPtr& msg)
 	double Target_Bearing_deg = (atan2(dx,dy)*180/PI);
 	printf("N: %f E: %f Heading: %f Bearing: %f Tx %f Ty: %f dx: %f dy: %f\r\n",current_Northing_m,current_Easting_m,current_Heading_deg,Target_Bearing_deg,TargetPose.x,TargetPose.y,dx,dy);
 	//printf("Tx:%f,%f\r\n",TargetPose.x,msg->poses[Path_LookAhead].pose.position.x);
-	if(Goal_Reached == 1)
-	{
-		Desired_Throttle = 0.0;
-	}
-	else
-	{
-		Desired_Throttle = 0.5;
-	}
+	
+
 	Desired_Steering_Percentage = (Target_Bearing_deg-current_Heading_deg)/180.0;
 	
 }
@@ -173,15 +167,11 @@ void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 	current_Easting_m = msg->x;
 	current_Northing_m = msg->y;
 	current_Heading_deg = msg->theta*180.0/PI;
-	double dx = fabs(current_Easting_m - GoalPose.x);
-	double dy = fabs(current_Northing_m - GoalPose.y);
-	//printf("Goal E: %f E: %f Goal N: %f N: %f dx: %f dy: %f\r\n",GoalPose.x,current_Easting_m,GoalPose.y,current_Northing_m,dx,dy);
-	if((dx < 0.5) and (dy < 0.5) and (Simulation_Initialized == 1))
-	{
-		printf("GOAL REACHED!\r\n");
-		Goal_Reached = 1;
-	}
-	
+
+}
+void ICARUS_Rover_State_Callback(const std_msgs::Int32::ConstPtr& msg)
+{
+	Rover_Status = msg->data;
 }
 void ICARUS_Rover_Control_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 {
@@ -285,8 +275,9 @@ int main(int argc, char **argv)
 	ros::Publisher Pub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Goal;
-	ros::Publisher Pub_Rover_Command;
+	//ros::Publisher Pub_Rover_Command;
 	ros::Subscriber Sub_Rover_GlobalPath;
+	ros::Subscriber Sub_Rover_State;
 	////Pub_Rover_GlobalPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_GlobalPath",1000);
 	if(Operation_Mode == "LIVE")
 	{
@@ -304,7 +295,7 @@ int main(int argc, char **argv)
 		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
-
+	Sub_Rover_State = nh.subscribe<std_msgs::Int32>("/Robot_Controller_Node/ICARUS_State",1000,ICARUS_Rover_State_Callback);
 	//ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
 	tf::TransformBroadcaster odom_broadcaster;
 	tf::TransformBroadcaster base_broadcaster;
@@ -417,6 +408,7 @@ int main(int argc, char **argv)
 		}
 		else if(Operation_Mode == "SIM")
 		{
+
 		}
 		geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(0.0);
 		geometry_msgs::TransformStamped odom_trans;
