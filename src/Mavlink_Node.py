@@ -76,7 +76,7 @@ pub_gps = rospy.Publisher('Mavlink_Node/gps', NavSatFix)
 pub_rc = rospy.Publisher('Mavlink_Node/rc', icarus_rover_rc.msg.RC)
 pub_state = rospy.Publisher('Mavlink_Node/state', icarus_rover_rc.msg.State)
 pub_vfr_hud = rospy.Publisher('Mavlink_Node/vfr_hud', icarus_rover_rc.msg.VFR_HUD)
-pub_attitude = rospy.Publisher('Mavlink_Node/attitude', icarus_rover_rc.msg.Attitude)
+#pub_attitude = rospy.Publisher('Mavlink_Node/attitude', icarus_rover_rc.msg.Attitude)
 #pub_raw_imu =  rospy.Publisher('raw_imu', icarus_rover_rc.msg.Mavlink_RAW_IMU)
 if opts.enable_control:
     #rospy.Subscriber("control", icarus_rover_rc.msg.Control , mav_control)
@@ -125,8 +125,8 @@ def mainloop():
                                           status = NavSatStatus(status=fix, service = NavSatStatus.SERVICE_GPS) 
                                           ))
             #pub.publish(String("MSG: %s"%msg))
-            if msg_type == "ATTITUDE" :
-                pub_attitude.publish(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
+            #if msg_type == "ATTITUDE" :
+            #pub_attitude.publish(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
 
 
             if msg_type == "LOCAL_POSITION_NED" :

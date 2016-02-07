@@ -68,6 +68,7 @@ double temp_Easting = 0.0;
 float current_speed = 0.0;
 int current_speed_command = 0;
 float current_Heading_deg = 0.0;
+int Position_Initialized = 0;
 //Other Variables
 
 int DEBUG_MODE= 0;
@@ -135,31 +136,40 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 	else
 	{
 		Gps_Valid = 1;
-
+		printf("GPS Status: FIX.\r\n");
 		std::string zone;
+		
 		current_latitude = msg->latitude;
 		current_longitude = msg->longitude;
-		if((current_gear != GEAR_PARK) || (current_Northing_m == 0.0)) 
-		{	
-			double temp_N_m;
-			double temp_E_m;
-			LLtoUTM(msg->latitude,msg->longitude,temp_N_m,temp_E_m,zone); 
-			if(DEBUG_MODE == 0)
+		double temp_N_m;
+		double temp_E_m;
+		LLtoUTM(msg->latitude,msg->longitude,temp_N_m,temp_E_m,zone); 
+		if(Position_Initialized == 0)
+		{
+			origin_Northing_m = temp_N_m;
+			origin_Easting_m = temp_E_m;
+			current_Northing_m = 0.0;
+			current_Easting_m = 0.0;
+			if((fabs(origin_Northing_m) > 0.0) && (fabs(origin_Easting_m) > 0.0))
 			{
-				current_Northing_m = temp_N_m-origin_Northing_m;
-				current_Easting_m = temp_E_m-origin_Easting_m;
+				Position_Initialized = 1;
 			}
+				
+			
 		}
+		if((Position_Initialized == 1) && (current_gear != GEAR_PARK))
+		{
+			current_Northing_m = temp_N_m-origin_Northing_m;
+			current_Easting_m = temp_E_m-origin_Easting_m;
+		}
+	//printf("oN: %f cN: %f N: %f oE: %f cE: %f E: %f\r\n",origin_Northing_m,temp_N_m,current_Northing_m,origin_Easting_m,temp_E_m,current_Easting_m);
 	}
 	
 }
 void ICARUS_Rover_VFRHUD_Callback(const icarus_rover_rc::VFR_HUD::ConstPtr& msg)
 {
-	if(DEBUG_MODE == 0)
-	{
-		current_Heading_deg = (float)msg->heading;
-		current_speed = msg->groundspeed;
-	}
+	current_Heading_deg = (float)msg->heading;
+	current_speed = msg->groundspeed;
 }
 void ICARUS_SimRover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
@@ -241,19 +251,8 @@ int main(int argc, char **argv)
 	nh.getParam("DEBUG_MODE",DEBUG_MODE);
 	nh.getParam("LOGGING_ENABLED",LOGGING_ENABLED);
 	nh.getParam("Operation_Mode",Operation_Mode); //Should be: SIM, LIVE
-	nh.getParam("Northing_Origin_m",origin_Northing_m);
-	
-	nh.getParam("Easting_Origin_m",origin_Easting_m);
-	if(DEBUG_MODE == 0)
-	{
-		current_Easting_m = origin_Easting_m;
-		current_Northing_m = origin_Northing_m;
-	}
-	else if(DEBUG_MODE == 1)
-	{
-		current_Easting_m = 0.0;
-		current_Northing_m = 0.0;
-	}
+
+
 	time_t rawtime;
 	struct tm * timeinfo;
 	time(&rawtime);
@@ -350,13 +349,13 @@ int main(int argc, char **argv)
 				//for(int i = 0; i < 7; i++) { RC_Command.channel[i] = Steer_Command; }
 				RC_Command.channel[STEER_CHANNEL] = Steer_Command;
 				RC_Command.channel[DRIVE_CHANNEL] = Drive_Command;
-				if((DEBUG_MODE == DEBUG) and (Gps_Valid == 0)) 
+				/*if((DEBUG_MODE == DEBUG) and (Gps_Valid == 0)) 
 				{ 
 					Gps_Valid = 1; 
 					current_Northing_m = 0.0;//current_Northing_m + .01;
 					current_Easting_m = 0.0;//current_Easting_m + .01;//0.0;
 					current_Heading_deg = 0.0;
-				} //DEBUGGING ONLY
+				} //DEBUGGING ONLY*/
 				if(Gps_Valid == 1)
 				{
 					//cout << "Gear: " << current_gear << " Thr: " << Drive_Command << " Sp: " << current_speed << " GPS: " << Gps_Valid << " Lat: " << current_latitude << " Long: " << current_longitude << " Head: " << current_heading << endl;

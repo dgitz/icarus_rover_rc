@@ -106,6 +106,7 @@ GridCell OccupancyGrid[grid_width][grid_height];
 void ICARUS_SimulationState_Callback(const std_msgs::Int32::ConstPtr& msg)
 {
 	ROS_DEBUG("Mapping_Node ICARUS_SimulationState_Callback Started.\r\n");
+
 	try
 	{
 		int state = msg->data;
@@ -377,6 +378,7 @@ void print_occupancygrid()
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
 	ROS_DEBUG("Mapping_Node ICARUS_Rover_Pose_Callback Started.\r\n");
+	//printf("Mapping_Node ICARUS_Rover_Pose_Callback Started.\r\n");
 	try
 	{
 		if((abs(msg->x) < 15.0) and (abs(msg->y) < 15.0))
@@ -473,14 +475,14 @@ int main(int argc, char **argv)
 			Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
 			Sub_Simulation_State = nh.subscribe<std_msgs::Int32>("/Matlab_Node/ICARUS_State",1000,ICARUS_SimulationState_Callback);
 			//Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Matlab_Node/ICARUS_SimSonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-			cout << "Sim Mode" << endl;
+			cout << "Mapping Node: Sim Mode" << endl;
 		}
 		else if(Mode.compare("LIVE") == 0)
 		{
 			Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
 			Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
 			//Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
-			cout << "Live Mode" << endl;
+			cout << "Mapping Node: Live Mode" << endl;
 		}	
 		Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
 		Pub_Rover_GlobalPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_GlobalPath",1000);
