@@ -72,11 +72,12 @@ def set_disarm(req):
     return True
 
 pub_gps = rospy.Publisher('Mavlink_Node/gps', NavSatFix)
+pub_gps_state = rospy.Publisher('Mavlink_Node/gps_state',icarus_rover_rc.msg.GPS_State)
 #pub_imu = rospy.Publisher('imu', Imu)
 pub_rc = rospy.Publisher('Mavlink_Node/rc', icarus_rover_rc.msg.RC)
 pub_state = rospy.Publisher('Mavlink_Node/state', icarus_rover_rc.msg.State)
 pub_vfr_hud = rospy.Publisher('Mavlink_Node/vfr_hud', icarus_rover_rc.msg.VFR_HUD)
-pub_attitude = rospy.Publisher('Mavlink_Node/attitude', icarus_rover_rc.msg.Attitude)
+#pub_attitude = rospy.Publisher('Mavlink_Node/attitude', icarus_rover_rc.msg.Attitude)
 #pub_raw_imu =  rospy.Publisher('raw_imu', icarus_rover_rc.msg.Mavlink_RAW_IMU)
 if opts.enable_control:
     #rospy.Subscriber("control", icarus_rover_rc.msg.Control , mav_control)
@@ -116,6 +117,8 @@ def mainloop():
                 pub_vfr_hud.publish(msg.airspeed, msg.groundspeed, msg.heading, msg.throttle, msg.alt, msg.climb)
 
             if msg_type == "GPS_RAW_INT":
+                #print "Got GPS Message. SV: %d eph: %d epv: %d" %(msg.satellites_visible,msg.eph,msg.epv)
+                pub_gps_state.publish(msg.satellites_visible,msg.eph,msg.epv,msg.lat/1e07,msg.lon/1e07,msg.alt/1e03,msg.fix_type)
                 fix = NavSatStatus.STATUS_NO_FIX
                 if msg.fix_type >=3:
                     fix=NavSatStatus.STATUS_FIX
@@ -125,8 +128,8 @@ def mainloop():
                                           status = NavSatStatus(status=fix, service = NavSatStatus.SERVICE_GPS) 
                                           ))
             #pub.publish(String("MSG: %s"%msg))
-            if msg_type == "ATTITUDE" :
-                pub_attitude.publish(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
+            #if msg_type == "ATTITUDE" :
+            #pub_attitude.publish(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
 
 
             if msg_type == "LOCAL_POSITION_NED" :

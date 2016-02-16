@@ -49,7 +49,7 @@ find_package(message_generation)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HUD.msg ICARUS_Diagnostic.msg)
+add_message_files(FILES RC.msg Attitude.msg Control.msg Num.msg State.msg VFR_HUD.msg ICARUS_Diagnostic.msg GPS_State.msg)
 #   ICARUS_Target_Status.msg
 #   ICARUS_Probe_Status.msg
 #   ICARUS_Probe_Command.msg

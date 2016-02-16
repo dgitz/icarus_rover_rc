@@ -1,0 +1,48 @@
+<!--xml-->
+<launch>
+   <node name="Navigation_Node" pkg="icarus_rover_rc" type="Navigation_Node"  output="screen">
+	  <param name="Operation_Mode" value="LIVE"/>
+    <param name="DEBUG_MODE" value="0"/>  
+	<param name="LOGGING_ENABLED" value="0"/>
+	
+  </node>
+  <node name="Robot_Controller_Node" pkg="icarus_rover_rc" type="Robot_Controller_Node"  output="screen">
+	  <param name="Operation_Mode" value="LIVE"/>
+    <param name="DEBUG_MODE" value="0"/>  
+	<param name="LOGGING_ENABLED" value="0"/>
+	<param name="Distance_Threshold_m" value="0.5"/>
+	<param name="Time_Threshold_sec" value="180.0"/>
+	
+  </node>
+  <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
+    <param name="DEBUG_MODE" value="1"/> 
+	<param name="LOGGING_ENABLED" value="0"/>
+     <param name="Operation_Mode" value="HYBRID" />
+  </node>
+  <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py" output="screen">
+  </node>
+  <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node">
+    <param name="sc_device" value="/dev/ttyUSB0" />
+	<param name="Operation_Mode" value="LIVE"/>
+    <param name="DEBUG_MODE" value="1"/>
+    <param name="baudrate" value="115200"/>
+    <param name="rate" value="50"/>
+    <param name="ping_sensor_count" value="13"/>
+    <param name="angle_min_deg" value = "-135"/>
+    <param name="angle_max_deg" value = "135"/>
+    <param name="angle_increment_deg" value = "22.5"/>
+    <param name="range_min_m" value = "0.1524"/>
+    <param name="range_max_m" value = "6.477"/>
+    <param name="points_per_beam" value="10"/>
+    <param name="beam_width" value="22.5"/>
+  </node>
+<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
+		  <param name="Operation_Mode" value="LIVE"/>
+		<param name="DEBUG_MODE" value="0"/>  
+		<param name="LOGGING_ENABLED" value="0"/>
+		<param name="Beams_Per_Sonar" value="10"/>
+		<param name="Sonar_Beamwidth" value="22.5"/>
+		<param name="Sonar_MaxDistance" value = "6.5024"/>
+		
+	</node>
+</launch>

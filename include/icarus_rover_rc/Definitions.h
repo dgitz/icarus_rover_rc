@@ -108,6 +108,16 @@
 #define GEAR_PARK    0
 #define GEAR_REVERSE -1
 
+//Status Definitions
+#define STATUS_UNKNOWN	 			0
+#define STATUS_STOPPED 				1
+#define STATUS_NAVIGATING			2
+#define STATUS_GOAL_REACHED 		3
+#define STATUS_MAXTIME_REACHED		4
+#define STATUS_GENELIST_READY		5	
+#define STATUS_RUNNING_SIMULATION	6
+#define STATUS_AUTONOMOUS_CONTROL	7
+
 //Naming Definitions
 #define DIAGNOSTICS_NODE_NAME "Diagnostics"
 #define DIAGNOSTICS_NODE_KEY "D"

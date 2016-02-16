@@ -47,6 +47,15 @@ int SonarDistance_2 = 0;
 int SonarDistance_3 = 0;
 int SonarDistance_4 = 0;
 int SonarDistance_5 = 0;
+int SonarDistance_6 = 0;
+int SonarDistance_7 = 0;
+int SonarDistance_8 = 0;
+int SonarDistance_9 = 0;
+int SonarDistance_10 = 0;
+int SonarDistance_11 = 0;
+int SonarDistance_12 = 0;
+int SonarDistance_13 = 0;
+
 int hex2dec(char);
 int hex2dec(char,char);
 ros::Publisher Pub_ICARUS_Sonar_Scan;
@@ -65,8 +74,9 @@ void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 	Scan.range_min = msg->range_min;
 	Scan.range_max = 50.0;
 	Scan.scan_time = msg->scan_time;
-	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/500.0;
-	Scan.ranges.resize(500);
+	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/130.0;
+	printf("Start: %f Stop: %f Inc: %f\r\n",msg->angle_min,msg->angle_max,Scan.angle_increment);
+	Scan.ranges.resize(130.0);
 	Scan.ranges = msg->ranges;
 
 	Pub_ICARUS_Sonar_Scan.publish(Scan);
@@ -150,7 +160,7 @@ int main(int argc, char** argv)
 		nh.getParam("angle_increment_deg",angle_increment);
 		nh.getParam("range_min_m",range_min);
 		nh.getParam("range_max_m",range_max);
-		printf("Min Range: %f Max Range: %f",range_min,range_max);
+		//printf("Min Range: %f Max Range: %f",range_min,range_max);
 		Pub_ICARUS_Sonar_Scan = nh.advertise<sensor_msgs::LaserScan>("ICARUS_Sonar_Scan",1000);
 	}
 	else if(Operation_Mode == "SIM")
@@ -178,8 +188,11 @@ int main(int argc, char** argv)
 			{
 				char buf = 0;
 				char response[255];
+				char message_buffer[255];
 				int spot = 0;
 				memset(response,0,sizeof response);
+				memset(message_buffer,0,sizeof message_buffer);
+				int message_size = 0;
 				in_message_completed = 0;
 				int length = 0;
 				int temp_counter = 0;
@@ -187,47 +200,76 @@ int main(int argc, char** argv)
 				in_message_started = 0;
 				in_message_completed = 0;
 				in_message_ready = 0;
-				while(!in_message_completed)
+				/*while(in_message_ready == 0)
 				{
 					memset(response,0,sizeof response);
-					res = read(sc_device,&response,14);
-					//printf("Read %d bytes\r\n",res);
-					if (res > 0)
+					res = read(sc_device,&response,sizeof(response));
+					if(res > 4)
 					{
-						for(int i = 0; i < res; i++)
+						in_message_ready = 1;
+						printf("Read %d bytes\r\n",res);
+						if(in_message_started == 0)
 						{
-							//printf("%c\r\n",response[i]);
-						}
-						for(int i = 0; i < res; i++)
-						{
-							if ((response[i]   == 'A') and
+							for(int i = 0; i < (res-3); i++)
+							{
+								if ((response[i]   == 'A') and
 								(response[i+1] == 'B') and
 								(response[i+2] == '1') and
 								(response[i+3] == '2'))
-							{
-								for(int j = i; j < res; j++)
 								{
-									//printf("%c\r\n",response[j]);
+									in_message_started = 1;
+									
+									
 								}
-								SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
-								SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
-								SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
-								SonarDistance_4 = hex2dec(response[i+10],response[i+11]);
-								SonarDistance_5 = hex2dec(response[i+12],response[i+13]);
-								//ping_distances[0] = value1;
-								//ping_distances[1] = value2;
-								//ping_distances[2] = value3;
-								in_message_ready = 1;
-								//printf("Got AB12 Message with value1: %d value2: %d value3: %d value4: %d value5: %d\r\n",SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5);
-								
-							}
-							
 						}
 					}
-					in_message_completed = 1;
+				}*/
+				memset(response,0,sizeof response);
+				res = read(sc_device,&response,sizeof(response));
+				if(res == 32){ in_message_ready = 1; }
+				/*if(res == 32)
+				{
+					for(int i = 0; i < res;i++)
+					{
+						printf("%c",response[i]);
+					}
+					printf(", %d bytes\r\n",res);
+				}*/
+				if(in_message_ready == 1)
+				{
+					for(int i = 0; i < res; i++)
+					{
+						if ((response[i]   == 'A') and
+							(response[i+1] == 'B') and
+							(response[i+2] == '1') and
+							(response[i+3] == '2'))
+						{
+							SonarDistance_1 = hex2dec(response[i+4],response[i+5]);
+							SonarDistance_2 = hex2dec(response[i+6],response[i+7]);
+							SonarDistance_3 = hex2dec(response[i+8],response[i+9]);
+							SonarDistance_4 = hex2dec(response[i+10],response[i+11]);
+							SonarDistance_5 = hex2dec(response[i+12],response[i+13]);
+							SonarDistance_6 = hex2dec(response[i+14],response[i+15]);
+							SonarDistance_7 = hex2dec(response[i+16],response[i+17]);
+							SonarDistance_8 = hex2dec(response[i+18],response[i+19]);
+							SonarDistance_9 = hex2dec(response[i+20],response[i+21]);
+							SonarDistance_10 = hex2dec(response[i+22],response[i+23]);
+							SonarDistance_11 = hex2dec(response[i+24],response[i+25]);
+							SonarDistance_12 = hex2dec(response[i+26],response[i+27]);
+							SonarDistance_13 = hex2dec(response[i+28],response[i+29]);
+
+							in_message_ready = 1;
+							in_message_completed = 1;
+							printf("Got AB12 v1: %d v2: %d v3: %d v4: %d v5: %d v6: %d v7: %d v8: %d v9: %d v10: %d v11: %d v12: %d v13: %d\r\n",
+							SonarDistance_1,SonarDistance_2,SonarDistance_3,SonarDistance_4,SonarDistance_5,SonarDistance_6,SonarDistance_7,
+							SonarDistance_8,SonarDistance_9,SonarDistance_10,SonarDistance_11,SonarDistance_12,SonarDistance_13);
+							
+						}
+					}		
+					
 				}
 
-				if((in_message_ready == 1) and (in_message_completed == 1))
+				if((in_message_ready == 1))
 				{
 					dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
 					start = std::clock();
@@ -250,6 +292,14 @@ int main(int argc, char** argv)
 					ping_distances[2] = SonarDistance_3*0.0254;
 					ping_distances[3] = SonarDistance_4*0.0254;
 					ping_distances[4] = SonarDistance_5*0.0254;
+					ping_distances[5] = SonarDistance_6*0.0254;
+					ping_distances[6] = SonarDistance_7*0.0254;
+					ping_distances[7] = SonarDistance_8*0.0254;
+					ping_distances[8] = SonarDistance_9*0.0254;
+					ping_distances[9] = SonarDistance_10*0.0254;
+					ping_distances[10] = SonarDistance_11*0.0254;
+					ping_distances[11] = SonarDistance_12*0.0254;
+					ping_distances[12] = SonarDistance_13*0.0254;
 					
 					for(int j = 0; j < ping_sensor_count; j++)
 					{
@@ -264,7 +314,6 @@ int main(int argc, char** argv)
 						
 						//Sonar_Scan.ranges[j] = 3.5;
 					}
-					printf("Sonar D1: %f D2: %f D3: %f D4: %f D5: %f Count: %d\r\n",ping_distances[0],ping_distances[1],ping_distances[2],ping_distances[3],ping_distances[4],ping_sensor_count);
 					Pub_ICARUS_Sonar_Scan.publish(Sonar_Scan);
 					geometry_msgs::Quaternion scan_quat = tf::createQuaternionMsgFromYaw(PI);
 					geometry_msgs::TransformStamped scan_trans;

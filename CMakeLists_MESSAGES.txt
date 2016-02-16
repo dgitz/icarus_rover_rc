@@ -57,9 +57,7 @@ add_message_files(
    ICARUS_Probe_Status.msg
    ICARUS_Probe_Command.msg
    ICARUS_Diagnostic.msg
-   RC.msg
-   VFR_HUD.msg
-   State.msg
+   GPS_State.msg
  )
 
 ## Generate services in the 'srv' folder
