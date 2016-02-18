@@ -557,6 +557,10 @@ int main(int argc, char **argv)
 					}
 					double temp = Forward_Neutral_Reverse * stuck_timer * .05;
 					Desired_Throttle = Desired_Throttle + temp;
+					if(Desired_Steering > 1.0) { Desired_Steering = 1.0; }
+					else if(Desired_Steering < -1.0) { Desired_Steering = -1.0; }
+					if(Desired_Throttle > 1.0) { Desired_Throttle = 1.0; }
+					else if(Desired_Throttle < -1.0) { Desired_Throttle = -1.0; }
 				}
 				printf("NN: Steer: T: %f O: %f P: %f\r\n",Steer_Target,Steer_Obstacle,Desired_Steering);
 				printf("NN: Throttle: %lf,%lf,%lf\r\n",Desired_Throttle,Gene_Throttle_Target,Throttle_Obstacle);

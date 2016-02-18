@@ -18,6 +18,8 @@
     <param name="DEBUG_MODE" value="0"/> 
 	<param name="LOGGING_ENABLED" value="0"/>
      <param name="Operation_Mode" value="MANUAL" />
+	 	 <param name="Origin_Northing_m" value="110.0" />
+	 <param name="Origin_Easting_m" value="222.0" />
   </node>
   <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py" output="screen">
   </node>
@@ -45,4 +47,7 @@
 		<param name="Sonar_MaxDistance" value = "6.5024"/>
 		
 	</node>
+		  <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node" output="screen">
+    <param name="diag_device" value="/dev/ttyUSB0"/> 
+  </node>
 </launch>

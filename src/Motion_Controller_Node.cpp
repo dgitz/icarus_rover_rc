@@ -83,7 +83,7 @@ sensor_msgs::Joy RoverCommand;
 geometry_msgs::Pose2D TargetPose;
 int Simulation_Initialized = 0;
 int Rover_Status = STATUS_UNKNOWN;
-
+ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic;
 
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
 void GlobalPath_Callback(const nav_msgs::Path::ConstPtr& msg)
@@ -237,15 +237,27 @@ void ICARUS_Rover_ManualControl_Callback(const sensor_msgs::Joy::ConstPtr& joy)
                 Drive_Command = DRIVE_NEUTRAL;
                 current_gear = GEAR_PARK;
             }
+			
         }
     }
+	if(armed_state == ARMED)
+	{
+		ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+		ICARUS_Diagnostic.Level = INFORMATION;
+		ICARUS_Diagnostic.Diagnostic_Message = ROVER_ARMED;
+		ICARUS_Diagnostic.Description = "Rover Armed";
+		Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+	}
+	else if(armed_state == DISARMED)
+	{
+		ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+		ICARUS_Diagnostic.Level = INFORMATION;
+		ICARUS_Diagnostic.Diagnostic_Message = ROVER_DISARMED;
+		ICARUS_Diagnostic.Description = "Rover Disarmed";
+		Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+	}
     
- 
-	ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
-	ICARUS_Diagnostic.Level = INFORMATION;
-	ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-	ICARUS_Diagnostic.Description = "Joystick Callback Received";
-  
+
   
   
 }
@@ -256,7 +268,7 @@ void ICARUS_Rover_AutoControl_Callback(const sensor_msgs::Joy::ConstPtr& joy)
   
     if(Operation_Mode == "HYBRID")
     {
-		float deadband = 0.1;
+		float deadband = 0.01;
         float steer_axis_value = joy->axes[Joystick_Steer_Axis];
         float drive_axis_value = joy->axes[Joystick_Throttle_Axis];
         if(joy->buttons[Reset_Position_Button] == 1) { Reset_Position = 1; }
@@ -290,8 +302,14 @@ void ICARUS_Rover_AutoControl_Callback(const sensor_msgs::Joy::ConstPtr& joy)
                 Drive_Command = DRIVE_NEUTRAL;
                 current_gear = GEAR_PARK;
             }
+			
         }
     }
+	/*ICARUS_Diagnostic.Diagnostic_Type = REMOTE_CONTROL;
+	ICARUS_Diagnostic.Level = INFORMATION;
+	ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+	ICARUS_Diagnostic.Description = "Joystick Callback Received";*/
+	
   
   
   
@@ -332,7 +350,7 @@ int main(int argc, char **argv)
 		ofstream out(filename);
 		out << "Time,GPS Valid,Armed,Gear,Drive_Command,Steer_Command,current_speed,current_latitude,current_longitude,current_heading,Northing,Easting" << endl;
 	}
-	ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic;
+	
 	ros::Subscriber Sub_Rover_ManualControl;
     ros::Subscriber Sub_Rover_AutoControl;
 	ros::Subscriber GPS_State;
@@ -376,8 +394,8 @@ int main(int argc, char **argv)
 		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
 		Sub_Rover_ManualControl = nh.subscribe<sensor_msgs::Joy>("/joy",1000,ICARUS_Rover_ManualControl_Callback);
         Sub_Rover_AutoControl = nh.subscribe<sensor_msgs::Joy>("/Navigation_Node/ICARUS_Rover_Command",1000,ICARUS_Rover_AutoControl_Callback);
-		GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
-		VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
+		//GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
+		//VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
 		Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
 		Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Pose",1000,ICARUS_SimRover_Pose_Callback);
 		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
@@ -440,7 +458,6 @@ int main(int argc, char **argv)
 				}
 				if(Traversed_Path_Points >= 120) 
 				{	
-					printf("MC: Path Full.  removing first element. %d\r\n",TraversedPath.poses.size());
 					geometry_msgs::PoseStamped newpoint;
 					newpoint.header.stamp = ros::Time::now();
 					newpoint.pose.position.x = current_Easting_m;
@@ -519,21 +536,32 @@ int main(int argc, char **argv)
 					cur_Pose.theta = current_Heading_deg*PI/180.0;
 					Pub_Rover_Pose.publish(cur_Pose);
 					
-					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
-					ICARUS_Diagnostic.Level = INFORMATION;
-					ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
-					ICARUS_Diagnostic.Description = "GPS Position Available";
+					
 				}
 				else
 				{
-					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
-					ICARUS_Diagnostic.Level = CAUTION;
-					ICARUS_Diagnostic.Diagnostic_Message = GENERAL_ERROR;
-					ICARUS_Diagnostic.Description = "GPS Position Not Available";
+					
 				}
 				//for(int i = 0; i < 8; i++) { RC_Command.channel[i] = Steer_Command; }
 				
 				Pub_Rover_RC.publish(RC_Command);
+				
+				if(Pose_Valid == 0)
+				{
+					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
+					ICARUS_Diagnostic.Level = CAUTION;
+					ICARUS_Diagnostic.Diagnostic_Message = DEVICE_NOT_AVAILABLE;
+					ICARUS_Diagnostic.Description = "GPS Position Not Available";
+					Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+				}
+				else if(Pose_Valid == 1)
+				{
+					ICARUS_Diagnostic.Diagnostic_Type = SENSORS;
+					ICARUS_Diagnostic.Level = INFORMATION;
+					ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+					ICARUS_Diagnostic.Description = "GPS Position Available";
+					Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+				}
 			}		
 			catch(const std::exception& ex)
 			{
@@ -563,7 +591,6 @@ int main(int argc, char **argv)
 		odom_trans.transform.translation.z = 0.0;
 		odom_trans.transform.rotation = odom_quat;
 		odom_broadcaster.sendTransform(odom_trans);
-		
 		geometry_msgs::Quaternion base_quat = tf::createQuaternionMsgFromYaw(-1.0*current_Heading_deg*PI/180.0);
 		geometry_msgs::TransformStamped base_trans;
 		base_trans.header.stamp = current_time;
@@ -599,7 +626,11 @@ int main(int argc, char **argv)
 
 
 		dtime = (std::clock() - start) / (double)(CLOCKS_PER_SEC /1);
-	    Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
+	    ICARUS_Diagnostic.Diagnostic_Type = NO_ERROR;
+		ICARUS_Diagnostic.Level = INFORMATION;
+		ICARUS_Diagnostic.Diagnostic_Message = NO_ERROR;
+		ICARUS_Diagnostic.Description = "MC Node Operational";
+		Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 		
 		
 		

@@ -53,6 +53,8 @@
 #define DROPPING_PACKETS 4
 #define MISSING_HEARTBEATS 5
 #define DEVICE_NOT_AVAILABLE 6
+#define ROVER_ARMED 7
+#define ROVER_DISARMED 8
 //#define GENERAL_ERROR 9  Already defined above, just leaving here for completeness.
 
 #define EXTENDED_SWITCH_PIN -1

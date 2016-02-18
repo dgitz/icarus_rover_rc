@@ -15,7 +15,7 @@
 	
   </node>
   <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
-    <param name="DEBUG_MODE" value="1"/> 
+    <param name="DEBUG_MODE" value="0"/> 
 	<param name="LOGGING_ENABLED" value="0"/>
      <param name="Operation_Mode" value="HYBRID" />
 	 <param name="Origin_Northing_m" value="110.0" />
@@ -24,7 +24,7 @@
   <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py">
   </node>
   <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node">
-    <param name="sc_device" value="/dev/ttyUSB0" />
+    <param name="sc_device" value="/dev/ttyUSB1" />
 	<param name="Operation_Mode" value="SIM"/>
     <param name="DEBUG_MODE" value="1"/>
     <param name="baudrate" value="115200"/>
@@ -47,4 +47,7 @@
 		<param name="Sonar_MaxDistance" value = "6.5024"/>
 		
 	</node>
+	  <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node" output="screen">
+    <param name="diag_device" value="/dev/ttyUSB0"/> 
+  </node>
 </launch>
