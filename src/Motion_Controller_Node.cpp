@@ -84,7 +84,7 @@ geometry_msgs::Pose2D TargetPose;
 int Simulation_Initialized = 0;
 int Rover_Status = STATUS_UNKNOWN;
 ros::Publisher Pub_ICARUS_Motion_Controller_Diagnostic;
-
+ros::Publisher Pub_Rover_RawPose;
 ::icarus_rover_rc::ICARUS_Diagnostic ICARUS_Diagnostic;
 void GlobalPath_Callback(const nav_msgs::Path::ConstPtr& msg)
 {
@@ -131,7 +131,7 @@ void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 
 void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
-
+	//printf("MC: GPS Status: %d\r\n",msg->status.status);
 	if(msg->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) 
 	{ 
 		Pose_Valid = 0; 
@@ -148,30 +148,31 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 		double temp_N_m;
 		double temp_E_m;
 		LLtoUTM(msg->latitude,msg->longitude,temp_N_m,temp_E_m,zone); 
-		/*if(Position_Initialized == 0)
+		geometry_msgs::Pose2D raw_Pose;
+		raw_Pose.x = temp_E_m;
+		raw_Pose.y = temp_N_m;
+		raw_Pose.theta = current_Heading_deg*PI/180.0;
+		Pub_Rover_RawPose.publish(raw_Pose);
+		//printf("MC: Lat: %f Long: %f N: %f E: %f\r\n",msg->latitude,msg->longitude,temp_N_m,temp_E_m);
+		if(Position_Initialized == 0)
 		{
-			//origin_Northing_m = temp_N_m;
-			//origin_Easting_m = temp_E_m;
-			current_Northing_m = 0.0;
-			current_Easting_m = 0.0;
-			if((fabs(origin_Northing_m) > 0.0) && (fabs(origin_Easting_m) > 0.0))
-			{
-				Position_Initialized = 1;
-			}
+			current_Northing_m = temp_N_m-origin_Northing_m;
+			current_Easting_m = temp_E_m-origin_Easting_m;
+			Position_Initialized = 1;
 				
 			
-		}*/
+		}
 		if((Position_Initialized == 1) && (current_gear != GEAR_PARK))
 		{
-               if(Reset_Position == 1)
-               {
-                    temp_N_m = origin_Northing_m;
-                    temp_E_m = origin_Easting_m;               
-               }
+			if(Reset_Position == 1)
+			{
+				temp_N_m = origin_Northing_m;
+				temp_E_m = origin_Easting_m;               
+			}
 			current_Northing_m = temp_N_m-origin_Northing_m;
 			current_Easting_m = temp_E_m-origin_Easting_m;
 		}
-	//printf("oN: %f cN: %f N: %f oE: %f cE: %f E: %f\r\n",origin_Northing_m,temp_N_m,current_Northing_m,origin_Easting_m,temp_E_m,current_Easting_m);
+		//printf("MC: oN: %f cN: %f N: %f oE: %f cE: %f E: %f\r\n",origin_Northing_m,temp_N_m,current_Northing_m,origin_Easting_m,temp_E_m,current_Easting_m);
 	}
 	
 }
@@ -357,6 +358,7 @@ int main(int argc, char **argv)
 	ros::Subscriber VFRHUD_State;
 	ros::Publisher Pub_Rover_RC;
 	ros::Publisher Pub_Rover_Pose;
+	
 	ros::Subscriber Sub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Goal;
 	//ros::Publisher Pub_Rover_Command;
@@ -375,7 +377,6 @@ int main(int argc, char **argv)
 		Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
 		nh.getParam("Origin_Easting_m",origin_Easting_m);
 		nh.getParam("Origin_Northing_m",origin_Northing_m);
-		Position_Initialized = 1;
 		
 	}
 	else if(Operation_Mode == "SIM")
@@ -401,11 +402,11 @@ int main(int argc, char **argv)
 		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Matlab_Node/ICARUS_SimRover_Goal",1000,ICARUS_Rover_Goal_Callback);
 		origin_Easting_m = 0.0;
 		origin_Northing_m = 0.0;
-		Position_Initialized = 1;
 	}
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	Sub_Rover_State = nh.subscribe<std_msgs::Int32>("/Robot_Controller_Node/ICARUS_State",1000,ICARUS_Rover_State_Callback);
 	Pub_Rover_TraversedPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_TraversedPath",1000);
+	Pub_Rover_RawPose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_RawPose",1000);
 	//ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 50);
 	tf::TransformBroadcaster odom_broadcaster;
 	tf::TransformBroadcaster base_broadcaster;

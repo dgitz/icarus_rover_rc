@@ -1,13 +1,13 @@
 <!--xml-->
 <launch>
 
-  <node name="Navigation_Node" pkg="icarus_rover_rc" type="Navigation_Node"  output="screen">
+  <node name="Navigation_Node" pkg="icarus_rover_rc" type="Navigation_Node"  >
 	  <param name="Operation_Mode" value="SIM"/>
     <param name="DEBUG_MODE" value="0"/>  
 	<param name="LOGGING_ENABLED" value="0"/>
 	
   </node>
-  <node name="Robot_Controller_Node" pkg="icarus_rover_rc" type="Robot_Controller_Node"  output="screen">
+  <node name="Robot_Controller_Node" pkg="icarus_rover_rc" type="Robot_Controller_Node"  >
 	  <param name="Operation_Mode" value="SIM"/>
     <param name="DEBUG_MODE" value="0"/>  
 	<param name="LOGGING_ENABLED" value="0"/>
@@ -26,13 +26,13 @@
 	<param name="LOGGING_ENABLED" value="0"/>
 	<param name="points_per_beam" value="10"/>
   </node>
-<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
+<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" >
 		  <param name="Operation_Mode" value="SIM"/>
 		<param name="DEBUG_MODE" value="1"/>  
 		<param name="LOGGING_ENABLED" value="0"/>
 		<param name="Beams_Per_Sonar" value="10"/>
 		<param name="Sonar_Beamwidth" value="30"/>
-		<param name="Sonar_MaxDistance" value = "6.5024"/>
+		<param name="Sonar_MaxDistance" value = "3.0"/>
 		
 	</node>
  

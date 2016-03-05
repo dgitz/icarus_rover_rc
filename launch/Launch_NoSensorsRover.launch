@@ -1,0 +1,37 @@
+<!--xml-->
+<launch>
+	<node name="Navigation_Node" pkg="icarus_rover_rc" type="Navigation_Node"  output="screen">
+		<param name="Operation_Mode" value="LIVE"/>
+		<param name="DEBUG_MODE" value="0"/>  
+		<param name="LOGGING_ENABLED" value="0"/>
+
+	</node>
+  <node name="Robot_Controller_Node" pkg="icarus_rover_rc" type="Robot_Controller_Node"  output="screen">
+	  <param name="Operation_Mode" value="LIVE"/>
+    <param name="DEBUG_MODE" value="0"/>  
+	<param name="LOGGING_ENABLED" value="0"/>
+	<param name="Distance_Threshold_m" value="0.5"/>
+	<param name="Time_Threshold_sec" value="180.0"/>
+			<param name="Goal_Northing_m" value="-10"/>
+		<param name="Goal_Easting_m" value="-10"/>
+  </node>
+  <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
+    <param name="DEBUG_MODE" value="0"/> 
+	<param name="LOGGING_ENABLED" value="0"/>
+     <param name="Operation_Mode" value="MANUAL" />
+	 	 <param name="Origin_Northing_m" value="4510201.220065" />
+	 <param name="Origin_Easting_m" value="282025.451211" />
+  </node>
+<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
+		  <param name="Operation_Mode" value="LIVE"/>
+		<param name="DEBUG_MODE" value="0"/>  
+		<param name="LOGGING_ENABLED" value="0"/>
+		<param name="Beams_Per_Sonar" value="10"/>
+		<param name="Sonar_Beamwidth" value="22.5"/>
+		<param name="Sonar_MaxDistance" value = "3.0"/>
+		
+	</node>
+		  <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node">
+    <param name="diag_device" value="/dev/ttyUSB0"/> 
+	</node>
+</launch>

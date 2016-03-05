@@ -72,7 +72,7 @@ void ICARUS_SimSonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 	Scan.angle_min = msg->angle_min;
 	Scan.angle_max = msg->angle_max;
 	Scan.range_min = msg->range_min;
-	Scan.range_max = 50.0;
+	Scan.range_max = 3.0;
 	Scan.scan_time = msg->scan_time;
 	Scan.angle_increment = (Scan.angle_max-Scan.angle_min)/130.0;
 	printf("Start: %f Stop: %f Inc: %f\r\n",msg->angle_min,msg->angle_max,Scan.angle_increment);

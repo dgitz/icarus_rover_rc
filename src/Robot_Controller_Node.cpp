@@ -45,6 +45,8 @@ int Load_Gene_List = 1;
 int Simulation_Initialized = 0;
 double current_Northing_m = 0.0;
 double current_Easting_m = 0.0;
+double Goal_Northing_m = 0.0;
+double Goal_Easting_m = 0.0;
 float current_Heading_deg = 0.0;
 double Distance_Threshold_m = 0.0;
 double Time_Threshold_sec = 0.0;
@@ -172,6 +174,8 @@ int main(int argc, char **argv)
 	nh.getParam("Operation_Mode",Operation_Mode); //Should be: SIM, LIVE
 	nh.getParam("Distance_Threshold_m",Distance_Threshold_m);
 	nh.getParam("Time_Threshold_sec",Time_Threshold_sec);
+	nh.getParam("Goal_Easting_m",Goal_Easting_m);
+	nh.getParam("Goal_Northing_m",Goal_Northing_m);
 	if(DEBUG_MODE == 0)
 	{
 		
@@ -199,8 +203,16 @@ int main(int argc, char **argv)
 	ros::Subscriber Sub_Simulation_State;
 	ros::Subscriber Sub_Rover_Pose;
 	ros::Subscriber Sub_Rover_Goal;
+	ros::Publisher Pub_Rover_Goal;
 	if(Operation_Mode == "LIVE")
 	{
+		Pub_ICARUS_Robot_Controller_Node_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Robot_Controller_Node_Diagnostic",1000);
+		Pub_Rover_State = nh.advertise<std_msgs::Int32>("ICARUS_State",1000);
+		Pub_Rover_Goal = nh.advertise<geometry_msgs::Pose2D>("Rover_Goal",1000);
+		GoalPose.x = Goal_Easting_m;
+		GoalPose.y = Goal_Northing_m;
+		GoalPose.theta = 0.0;
+		
 	}
 	else if(Operation_Mode == "SIM")
 	{
@@ -234,7 +246,7 @@ int main(int argc, char **argv)
 		{
 			try
 			{
-				
+				Pub_Rover_Goal.publish(GoalPose);
 			}		
 			catch(exception& e)
 			{
@@ -249,7 +261,7 @@ int main(int argc, char **argv)
 				//printf("Robot Controller: Sim State: %d Rover State: %d\r\n",Simulation_Status,Rover_Status);
 				//Simulation_Status = STATUS_GENELIST_READY; //DEBUG ONLY
 				//if(((Simulation_Status == STATUS_GENELIST_READY) || (Simulation_Status == STATUS_AUTONOMOUS_CONTROL)) && (Load_Gene_List == 1)) //Load Gene List
-				if((Simulation_Status == STATUS_AUTONOMOUS_CONTROL) && (Load_Gene_List == 1)) //Load Gene List
+				if(((Simulation_Status == STATUS_AUTONOMOUS_CONTROL) || (Simulation_Status == STATUS_GENELIST_READY)) && (Load_Gene_List == 1)) //Load Gene List
 				{
 					
 					//Load Gene List Here

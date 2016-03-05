@@ -18,8 +18,8 @@
     <param name="DEBUG_MODE" value="0"/> 
 	<param name="LOGGING_ENABLED" value="0"/>
      <param name="Operation_Mode" value="HYBRID" />
-	 <param name="Origin_Northing_m" value="110.0" />
-	 <param name="Origin_Easting_m" value="222.0" />
+	 <param name="Origin_Northing_m" value="4510201.220065" />
+	 <param name="Origin_Easting_m" value="282025.451211" />
   </node>
   <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py">
   </node>

@@ -105,7 +105,7 @@ std::vector<SonarModel_Point> SonarModel_Distance;
 GridCell OccupancyGrid[grid_width][grid_height];
 void ICARUS_SimulationState_Callback(const std_msgs::Int32::ConstPtr& msg)
 {
-	ROS_DEBUG("Mapping_Node ICARUS_SimulationState_Callback Started.\r\n");
+	printf("Mapping_Node ICARUS_SimulationState_Callback Started.\r\n");
 
 	try
 	{
@@ -121,11 +121,11 @@ void ICARUS_SimulationState_Callback(const std_msgs::Int32::ConstPtr& msg)
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node ICARUS_SimulationState_Callback Completed.\r\n");
+	printf("Mapping_Node ICARUS_SimulationState_Callback Completed.\r\n");
 }
 void read_SonarModel_LUT()
 {
-	ROS_DEBUG("Mapping_Node read_SonarModel_LUT Started.\r\n");
+	printf("Mapping_Node read_SonarModel_LUT Started.\r\n");
 	try
 	{
 		ifstream angle_file("/home/linaro/catkin_ws/src/icarus_rover_rc/include/icarus_rover_rc/SonarModel_Angle.csv");
@@ -180,12 +180,12 @@ void read_SonarModel_LUT()
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node read_SonarModel_LUT Completed.\r\n");
+	printf("Mapping_Node read_SonarModel_LUT Completed.\r\n");
 	
 }
 void initialize_occupancygrid()
 {
-	ROS_DEBUG("Mapping_Node initialize_occupancygrid Started.\r\n");
+	printf("Mapping_Node initialize_occupancygrid Started.\r\n");
 	try
 	{
 		double start_x = bottom_left_X;
@@ -216,11 +216,11 @@ void initialize_occupancygrid()
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node initialize_occupancygrid Completed.\r\n");
+	printf("Mapping_Node initialize_occupancygrid Completed.\r\n");
 }
 void reset_occupancygrid()
 {
-	ROS_DEBUG("Mapping_Node reset_occupancygrid Started.\r\n");
+	printf("Mapping_Node reset_occupancygrid Started.\r\n");
 	try
 	{
 		for(int i = 0; i < grid_width;i++)
@@ -238,12 +238,12 @@ void reset_occupancygrid()
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node reset_occupancygrid Completed.\r\n");
+	//printf("Mapping_Node reset_occupancygrid Completed.\r\n");
 			
 }
 void update_occupancygrid()
 {
-	ROS_DEBUG("Mapping_Node update_occupancygrid Started.\r\n");
+	//printf("Mapping_Node update_occupancygrid Started.\r\n");
 	try
 	{
 		if(Pose_Valid == 1)
@@ -268,6 +268,10 @@ void update_occupancygrid()
 				{
 					beam_intercepted = 0;
 					distance = Sonar_MaxDistance; 
+				}
+				else if(SonarScan.ranges[s] > Sonar_MaxDistance)
+				{
+					beam_intercepted = 0;
 				}
 				else
 				{
@@ -352,7 +356,7 @@ void update_occupancygrid()
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node update_occupancygrid Completed.\r\n");
+	//printf("Mapping_Node update_occupancygrid Completed.\r\n");
 }
 void print_occupancygrid()
 {
@@ -377,7 +381,7 @@ void print_occupancygrid()
 }
 void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-	ROS_DEBUG("Mapping_Node ICARUS_Rover_Pose_Callback Started.\r\n");
+	//printf("Mapping_Node ICARUS_Rover_Pose_Callback Started.\r\n");
 	//printf("Mapping_Node ICARUS_Rover_Pose_Callback Started.\r\n");
 	try
 	{
@@ -399,12 +403,12 @@ void ICARUS_Rover_Pose_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node ICARUS_Rover_Pose_Callback Completed.\r\n");
+	//printf("Mapping_Node ICARUS_Rover_Pose_Callback Completed.\r\n");
 	//printf("Got a Pose x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
 void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 {
-	ROS_DEBUG("Mapping_Node ICARUS_Rover_Goal_Callback Started.\r\n");
+	//printf("Mapping_Node ICARUS_Rover_Goal_Callback Started.\r\n");
 	try
 	{
 		if((abs(msg->x) < 15.0) and (abs(msg->y) < 15.0) and (abs(msg->theta) < 10.0))
@@ -419,12 +423,12 @@ void ICARUS_Rover_Goal_Callback(const geometry_msgs::Pose2D::ConstPtr& msg)
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node ICARUS_Rover_Goal_Callback Completed.\r\n");
+	//printf("Mapping_Node ICARUS_Rover_Goal_Callback Completed.\r\n");
 	//printf("Got a Goal x: %f y: %f theta: %f\r\n",msg->x,msg->y,msg->theta);
 }
 void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
-	ROS_DEBUG("Mapping_Node ICARUS_Sonar_Scan_Callback Started.\r\n");
+	//printf("Mapping_Node ICARUS_Sonar_Scan_Callback Started.\r\n");
 	try
 	{
 		if(Pose_Valid == 1)
@@ -444,7 +448,7 @@ void ICARUS_Sonar_Scan_Callback(const sensor_msgs::LaserScan::ConstPtr& msg)
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node ICARUS_Sonar_Scan_Callback Completed.\r\n");
+	//printf("Mapping_Node ICARUS_Sonar_Scan_Callback Completed.\r\n");
 }
 
 int main(int argc, char **argv)
@@ -458,7 +462,7 @@ int main(int argc, char **argv)
 		nh.getParam("Beams_Per_Sonar",Beams_Per_Sonar);
 		nh.getParam("Sonar_Beamwidth",Sonar_Beamwidth);
 		nh.getParam("Sonar_MaxDistance",Sonar_MaxDistance);
-		printf("Got Debug Mode: %d\r\n",0);
+		//printf("Got Debug Mode: %d\r\n",0);
 		//ros::Publisher Pub_ICARUS_Mapping_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Mapping_Diagnostic",1000);
 		ros::Rate loop_rate(3);
 		std::clock_t    start;
@@ -481,6 +485,7 @@ int main(int argc, char **argv)
 		{
 			Pub_ICARUS_OccupancyGrid = nh.advertise<nav_msgs::OccupancyGrid>("ICARUS_OccupancyGrid",1000);
 			Sub_Rover_Pose = nh.subscribe<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000,ICARUS_Rover_Pose_Callback);
+			Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Robot_Controller_Node/Rover_Goal",1000,ICARUS_Rover_Goal_Callback);
 			//Sub_Sonar_Scan = nh.subscribe<sensor_msgs::LaserScan>("/Sonic_Controller_Node/ICARUS_Sonar_Scan",1000,ICARUS_Sonar_Scan_Callback);
 			cout << "Mapping Node: Live Mode" << endl;
 		}	
@@ -496,7 +501,7 @@ int main(int argc, char **argv)
 		read_SonarModel_LUT();
 		while(ros::ok())
 		{
-			ROS_DEBUG("Mapping_Node ROS Spin.\r\n");
+			//printf("Mapping_Node ROS Spin.\r\n");
 			start = std::clock();
 			ros::spinOnce();
 			loop_rate.sleep();
@@ -507,7 +512,7 @@ int main(int argc, char **argv)
 				
 				if((Grid_Finished == 1) and (New_Scan == 1))
 				{	
-					ROS_DEBUG("Mapping_Node Grid Finished and New Scan.\r\n");
+					//printf("Mapping_Node Grid Finished and New Scan.\r\n");
 					Grid_Finished = 0;
 					update_occupancygrid();
 					ros_OccupancyGrid.header.stamp = ros::Time::now();
@@ -533,10 +538,10 @@ int main(int argc, char **argv)
 					{
 						if(path_search() == 1)
 						{
-							ROS_DEBUG("Mapping_Node Path Search Complete\r\n");
+							//printf("Mapping_Node Path Search Complete\r\n");
 							//("PATH FOUND!");
 							std::reverse(PATH.begin(),PATH.end());
-							ROS_DEBUG("Mapping_Node Reversed Path\r\n");
+							//printf("Mapping_Node Reversed Path\r\n");
 							nav_msgs::Path GlobalPath;
 							GlobalPath.header.stamp = ros::Time::now();
 							GlobalPath.header.frame_id = "map";
@@ -552,11 +557,11 @@ int main(int argc, char **argv)
 							}
 							//printf("PATH COMPLETE.\r\n");
 							Pub_Rover_GlobalPath.publish(GlobalPath);
-							ROS_DEBUG("Mapping_Node Published Path\r\n");
+							//printf("Mapping_Node Published Path\r\n");
 						}
 						else
 						{
-							ROS_DEBUG("Mapping_Node Path Search Failed\r\n");
+							//printf("Mapping_Node Path Search Failed\r\n");
 						}
 					}
 					
@@ -580,7 +585,7 @@ int main(int argc, char **argv)
 }
 int path_search()
 {
-	ROS_DEBUG("Mapping_Node Path Search Started\r\n");
+	//printf("Mapping_Node Path Search Started\r\n");
 	try
 	{
 		OPEN_LIST.clear();
@@ -728,7 +733,7 @@ int path_search()
 				if(( SUCCESSORS.at(k).i >= 0 ) and (SUCCESSORS.at(k).i < grid_width) and (SUCCESSORS.at(k).j >= 0) and (SUCCESSORS.at(k).j < grid_height))
 				{
 					SUCCESSORS.at(k).h = d_successor_to_goal;
-					ROS_DEBUG("Here1\r\n");
+					//printf("Here1\r\n");
 					SUCCESSORS.at(k).f = SUCCESSORS.at(k).g + SUCCESSORS.at(k).h;
 					if(OccupancyGrid[SUCCESSORS.at(k).i][SUCCESSORS.at(k).j].Probability > 0.5){ add_successor = 0; }
 
@@ -809,7 +814,7 @@ int path_search()
 							{
 								path_complete = 1;
 								//printf("PATH COMPLETE\r\n");
-								ROS_DEBUG("Mapping_Node Path Search Returning\r\n");
+								//printf("Mapping_Node Path Search Returning\r\n");
 								return 1;
 							}
 							else if(id == CLOSED_LIST.at(l).ID)
@@ -838,7 +843,7 @@ int path_search()
 		cout << "RC Node: " << e.what() << endl;
 		ROS_ERROR("%s",e.what());
 	}
-	ROS_DEBUG("Mapping_Node Path Search Finished\r\n");
+	printf("Mapping_Node Path Search Finished\r\n");
 }
   /*ICARUS_Diagnostic.header.stamp = ros::Time::now();
   ICARUS_Diagnostic.Diagnostic_Type = GENERAL_ERROR;
