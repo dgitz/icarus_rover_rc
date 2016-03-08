@@ -28,6 +28,7 @@
 #define KEY_DOWN 274
 #define KEY_LEFT 276
 #define KEY_RIGHT 275
+#define KEY_SPACE 32
 
 #define JOY_STEER_AXIS  0
 #define JOY_THROTTLE_AXIS 3
@@ -49,14 +50,12 @@ void KeyDown_Callback(const keyboard::Key::ConstPtr& msg)
 {
      if(msg->code == KEY_A)
      {
-          printf("Got A.\r\n");
           Armed_State = 1;
           armed_state_changed = 1;
           
      }
-     else if(msg->code == KEY_D)
+     else if((msg->code == KEY_D) || (msg->code == KEY_SPACE))
      {
-          printf("Got D.\r\n");
           Armed_State = 0;
           Steer_Value = 0.0;
           Throttle_Value = 0.0;
