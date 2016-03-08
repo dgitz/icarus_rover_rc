@@ -154,7 +154,7 @@ void ICARUS_Rover_GPS_Callback(const sensor_msgs::NavSatFix::ConstPtr& msg)
 		raw_Pose.theta = current_Heading_deg*PI/180.0;
 		Pub_Rover_RawPose.publish(raw_Pose);
 		//printf("MC: Lat: %f Long: %f N: %f E: %f\r\n",msg->latitude,msg->longitude,temp_N_m,temp_E_m);
-		if(Position_Initialized == 0)
+		if((Position_Initialized == 0) || (DEBUG_MODE == 1))
 		{
 			current_Northing_m = temp_N_m-origin_Northing_m;
 			current_Easting_m = temp_E_m-origin_Easting_m;
@@ -267,7 +267,7 @@ void ICARUS_Rover_AutoControl_Callback(const sensor_msgs::Joy::ConstPtr& joy)
 	
 
   
-    if(Operation_Mode == "HYBRID")
+    if((Operation_Mode == "HYBRID") || (Operation_Mode == "LIVE"))
     {
 		float deadband = 0.01;
         float steer_axis_value = joy->axes[Joystick_Steer_Axis];
@@ -379,6 +379,22 @@ int main(int argc, char **argv)
 		nh.getParam("Origin_Northing_m",origin_Northing_m);
 		
 	}
+     else if(Operation_Mode == "LIVE")
+	{
+
+		Pub_ICARUS_Motion_Controller_Diagnostic = nh.advertise<icarus_rover_rc::ICARUS_Diagnostic>("ICARUS_Motion_Controller_Diagnostic",1000);
+		Sub_Rover_ManualControl = nh.subscribe<sensor_msgs::Joy>("/joy",1000,ICARUS_Rover_ManualControl_Callback);
+          Sub_Rover_AutoControl = nh.subscribe<sensor_msgs::Joy>("/Navigation_Node/ICARUS_Rover_Command",1000,ICARUS_Rover_AutoControl_Callback);
+		Sub_Rover_Goal = nh.subscribe<geometry_msgs::Pose2D>("/Robot_Controller_Node/Rover_Goal",1000,ICARUS_Rover_Goal_Callback);
+          GPS_State = nh.subscribe<sensor_msgs::NavSatFix>("/Mavlink_Node/gps",1000,ICARUS_Rover_GPS_Callback); 
+		VFRHUD_State = nh.subscribe<icarus_rover_rc::VFR_HUD>("/Mavlink_Node/vfr_hud",1000,ICARUS_Rover_VFRHUD_Callback);
+		Pub_Rover_RC = nh.advertise<icarus_rover_rc::RC>("send_rc",1000);
+		Pub_Rover_Pose = nh.advertise<geometry_msgs::Pose2D>("/Motion_Controller_Node/ICARUS_Rover_Pose",1000);
+		nh.getParam("Origin_Easting_m",origin_Easting_m);
+		nh.getParam("Origin_Northing_m",origin_Northing_m);
+	
+		
+	}
 	else if(Operation_Mode == "SIM")
 	{
 
@@ -403,6 +419,7 @@ int main(int argc, char **argv)
 		origin_Easting_m = 0.0;
 		origin_Northing_m = 0.0;
 	}
+     
 	Pub_ICARUS_Motion_Controller_Diagnostic.publish(ICARUS_Diagnostic);
 	Sub_Rover_State = nh.subscribe<std_msgs::Int32>("/Robot_Controller_Node/ICARUS_State",1000,ICARUS_Rover_State_Callback);
 	Pub_Rover_TraversedPath = nh.advertise<nav_msgs::Path>("ICARUS_Rover_TraversedPath",1000);
@@ -477,7 +494,7 @@ int main(int argc, char **argv)
 		TraversedPath.header.stamp = ros::Time::now();
 		Pub_Rover_TraversedPath.publish(TraversedPath);
 		
-		if((Operation_Mode == "MANUAL") || (Operation_Mode=="HYBRID"))
+		if((Operation_Mode == "MANUAL") || (Operation_Mode=="HYBRID") || (Operation_Mode == "LIVE"))
 		{
 			joystick_timeout_counter++;  //Increment Joystick Timeout Counter
 			if(joystick_timeout_counter > 100) 
@@ -530,7 +547,7 @@ int main(int argc, char **argv)
 					{
 						out << setprecision(16) << cur_time << "," << Pose_Valid << "," << armed_state << "," << current_gear << "," << Drive_Command << "," << Steer_Command << "," << current_speed << "," << current_latitude << "," << current_longitude << "," << current_Heading_deg << "," << current_Northing_m << "," << current_Easting_m <<  endl;
 					}
-					//printf("T: %f Armed: %d Gear: %d Thr: %d St: %d Sp: %f GPS: %d Head: %f N: %f E: %f\r\n",cur_time,armed_state,current_gear,Drive_Command,Steer_Command,current_speed,Pose_Valid,current_Heading_deg,current_Northing_m,current_Easting_m);
+					printf("T: %f Armed: %d Gear: %d Thr: %d St: %d Sp: %f GPS: %d Head: %f N: %f E: %f\r\n",cur_time,armed_state,current_gear,Drive_Command,Steer_Command,current_speed,Pose_Valid,current_Heading_deg,current_Northing_m,current_Easting_m);
 					geometry_msgs::Pose2D cur_Pose;
 					cur_Pose.x = current_Easting_m;
 					cur_Pose.y = current_Northing_m;

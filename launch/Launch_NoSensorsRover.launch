@@ -19,8 +19,8 @@
     <param name="DEBUG_MODE" value="0"/> 
 	<param name="LOGGING_ENABLED" value="0"/>
      <param name="Operation_Mode" value="MANUAL" />
-	 	 <param name="Origin_Northing_m" value="4510201.220065" />
-	 <param name="Origin_Easting_m" value="282025.451211" />
+	 	 <param name="Origin_Northing_m" value="4679397.919928" />
+	 <param name="Origin_Easting_m" value="281351.489602" />
   </node>
 <node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
 		  <param name="Operation_Mode" value="LIVE"/>

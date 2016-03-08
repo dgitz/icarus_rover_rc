@@ -12,17 +12,21 @@
 	<param name="LOGGING_ENABLED" value="0"/>
 	<param name="Distance_Threshold_m" value="0.5"/>
 	<param name="Time_Threshold_sec" value="180.0"/>
+     <param name="Goal_Easting_m" value = "5.0" />
+     <param name="Goal_Northing_m" value = "5.0" />
 	
   </node>
   <node name="Motion_Controller_Node" pkg="icarus_rover_rc" type="Motion_Controller_Node" output="screen">
-    <param name="DEBUG_MODE" value="1"/> 
+    <param name="DEBUG_MODE" value="0"/> 
 	<param name="LOGGING_ENABLED" value="0"/>
-     <param name="Operation_Mode" value="HYBRID" />
+     <param name="Operation_Mode" value="MANUAL" />
+	 	 <param name="Origin_Northing_m" value="4510201.220065" />
+	 <param name="Origin_Easting_m" value="282025.451211" />
   </node>
   <node name="Mavlink_Node" pkg="icarus_rover_rc" type="Mavlink_Node.py" output="screen">
   </node>
   <node name="Sonic_Controller_Node" pkg="icarus_rover_rc" type="Sonic_Controller_Node">
-    <param name="sc_device" value="/dev/ttyUSB0" />
+    <param name="sc_device" value="/dev/ttyUSB1" />
 	<param name="Operation_Mode" value="LIVE"/>
     <param name="DEBUG_MODE" value="1"/>
     <param name="baudrate" value="115200"/>
@@ -36,7 +40,7 @@
     <param name="points_per_beam" value="10"/>
     <param name="beam_width" value="22.5"/>
   </node>
-<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node" output="screen" >
+<node name="Mapping_Node" pkg="icarus_rover_rc" type="Mapping_Node"  >
 		  <param name="Operation_Mode" value="LIVE"/>
 		<param name="DEBUG_MODE" value="0"/>  
 		<param name="LOGGING_ENABLED" value="0"/>
@@ -45,4 +49,7 @@
 		<param name="Sonar_MaxDistance" value = "6.5024"/>
 		
 	</node>
+		  <node name="Diagnostic_Node" pkg="icarus_rover_rc" type="Diagnostic_Node">
+    <param name="diag_device" value="/dev/ttyUSB0"/> 
+  </node>
 </launch>
