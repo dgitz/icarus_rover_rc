@@ -1,3 +1,9 @@
+/* Author: David Gitz
+   Date: 7-March-2016
+   Purpose: Converts ros keyboard topic to joystick topic.
+   Usage: See Launch_UserControl.launch
+
+*/
 //Includes all the headers necessary to use the most common public pieces of the ROS system.
 #include <ros/ros.h>
 //Include some useful constants for image encoding. Refer to: http://www.ros.org/doc/api/sensor_msgs/html/namespacesensor__msgs_1_1image__encodings.html for more info.
