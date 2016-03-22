@@ -123,6 +123,7 @@ add_executable(Mapping_Node src/Mapping_Node.cpp)
 add_executable(Navigation_Node src/Navigation_Node.cpp)
 add_executable(Robot_Controller_Node src/Robot_Controller_Node)
 add_executable(KeyJoy_Node src/KeyJoy_Node.cpp)
+add_executable(Teleop_Node src/Teleop_Node.cpp)
 
 #Obsolete Nodes
 #add_executable(tf_broadcaster src/tf_broadcaster.cpp)
@@ -188,6 +189,9 @@ target_link_libraries(Robot_Controller_Node
 target_link_libraries(KeyJoy_Node
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
+)
+target_link_libraries(Teleop_Node
+  ${catkin_LIBRARIES}
 )
 #target_link_libraries(Evolution_Node
 #  ${catkin_LIBRARIES}

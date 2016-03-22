@@ -26,6 +26,7 @@
 #define TARGETING_NODE 9
 
 
+
 //Field 4: Diagnostic Type
 #define NO_ERROR 0
 #define ELECTRICAL 1

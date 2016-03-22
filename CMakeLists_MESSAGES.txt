@@ -58,6 +58,7 @@ add_message_files(
    ICARUS_Probe_Command.msg
    ICARUS_Diagnostic.msg
    GPS_State.msg
+   Key.msg
  )
 
 ## Generate services in the 'srv' folder

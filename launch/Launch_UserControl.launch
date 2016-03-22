@@ -2,5 +2,6 @@
 <launch>
    <node name="keyboard" pkg="keyboard" type="keyboard"  />
   <node name="KeyJoy_Node" pkg="icarus_rover_rc" type="KeyJoy_Node" />
-  <node name="rviz"        pkg="rviz"            type="rviz" />
+  
+  <node name="Teleop_Node" pkg="icarus_rover_rc" type="Teleop_Node" output="screen"/>
 </launch>

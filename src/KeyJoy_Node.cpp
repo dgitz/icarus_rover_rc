@@ -117,7 +117,7 @@ void KeyDown_Callback(const keyboard::Key::ConstPtr& msg)
      }
      if(axis_changed == 1)
      {
-          joy_command.axes[JOY_STEER_AXIS] = Steer_Value;
+          joy_command.axes[JOY_STEER_AXIS] = Steer_Value*-1;;
           joy_command.axes[JOY_THROTTLE_AXIS] = Throttle_Value;
           axis_changed = 0;
      }
